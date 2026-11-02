@@ -69,6 +69,10 @@ export default async ({ page, app, evidence, assert }) => {
   const tile = await app.panel(1).locator('.a-counters').textContent();
   assert.match(tile, /3/, 'the Counters tile lists poison');
   assert.match(tile, /1/, 'and energy');
+  assert.ok(await app.panel(1).locator('.a-counters > svg').isVisible(), 'Companion keeps the Counters icon while the tile lists counters');
+  const header = await app.tileHeader(1, 'counters');
+  assert.ok(header.labelUnderIcon && header.rowUnderLabel, 'the label sits under the icon and the counter rows under the label');
+  assert.ok(Math.abs(header.iconTop - header.taxIconTop) <= 2, `the Counters header starts ${header.iconTop}px down its tile, the Tax tile's ${header.taxIconTop}px`);
   await evidence.shot('counters-tile');
   evidence.note('poison 3, energy 1, rad reminder opened and closed');
 

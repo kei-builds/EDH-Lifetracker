@@ -99,6 +99,7 @@ A journey is a file in `harness/journeys/<name>.mjs` exporting one async functio
 | `app.hold(locator, ms)` | Press-and-hold with the mouse: first count at 80 ms, repeats from 450 ms every 110 ms |
 | `app.openTool(p, 'tax' \| 'damage' \| 'mana' \| 'counters')` | Taps the tile (`.a-<kind>`), tapping the name first in Minimal where tiles are hidden |
 | `app.sheet(p)` | The open tool sheet; counters inside are `.ctr` with buttons named `−` and `+` and the value in `b` |
+| `app.tileHeader(p, 'damage' \| 'counters')` | Measured along the panel's own down axis: `labelUnderIcon`, `rowUnderLabel`, and `iconTop` next to `taxIconTop`, how far down each tile its icon starts |
 | `app.swipe(p)` | A sideways swipe from that player's seat, then the 450 ms the app needs before it will count a tap again |
 | `app.openMenu()` | Options menu (`#menu`) |
 | `app.screen()`, `app.theme()` | The visible `.screen` id; `html[data-theme]` |

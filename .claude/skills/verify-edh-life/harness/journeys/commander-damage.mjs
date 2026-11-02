@@ -1,5 +1,7 @@
 // Commander damage: the Damage tile and a sideways swipe open damage mode for a player; damage lowers life, shows on the
 // tile afterwards, and 21 from one commander knocks the player out.
+import { PHONE_WITH_BARS } from '../lib.mjs';
+
 export default async ({ page, app, evidence, assert }) => {
   await app.newGame({ players: 3, names: ["Atraxa, Praetors' Voice", 'Krenko, Mob Boss', "Yuriko, the Tiger's Shadow"] });
   const dmgMode = () => app.$('table').evaluate(e => e.classList.contains('dmgMode'));
@@ -27,6 +29,13 @@ export default async ({ page, app, evidence, assert }) => {
   assert.ok(!(await dmgMode()));
   assert.equal((await app.game()).dmgTarget, null);
   assert.match(await app.panel(1).locator('.a-damage').textContent(), /3/, 'the Damage tile lists the damage taken');
+  const header = async p => {
+    assert.ok(await app.panel(p).locator('.a-damage > svg').isVisible(), 'Companion keeps the Damage icon while the tile lists damage');
+    const h = await app.tileHeader(p, 'damage');
+    assert.ok(h.labelUnderIcon && h.rowUnderLabel, 'the label sits under the icon and the damage rows under the label');
+    assert.ok(Math.abs(h.iconTop - h.taxIconTop) <= 2, `the Damage header starts ${h.iconTop}px down its tile, the Tax tile's ${h.taxIconTop}px`);
+  };
+  await header(1);
   await evidence.shot('tile-shows-damage');
   evidence.note('three commander damage from Yuriko to Krenko', { life: g.players[1].life });
 
@@ -49,4 +58,23 @@ export default async ({ page, app, evidence, assert }) => {
   await evidence.shot('knocked-out-by-commander');
   await evidence.storeDump('knocked-out-by-commander');
   evidence.note('21 from one commander knocked Krenko out', { cmd: g.players[1].cmd[2][0] });
+
+  await app.openMenu();
+  await app.$('toHome').tap();
+  await page.setViewportSize(PHONE_WITH_BARS);
+  await app.newGame({ players: 4, names: ["Atraxa, Praetors' Voice", 'Krenko, Mob Boss', "Yuriko, the Tiger's Shadow", 'Edgar Markov'] });
+  await app.openTool(0, 'damage');
+  for (const p of [1, 2, 3]) await plus(p).tap();
+  await app.$('dmgDone').tap();
+  await app.openTool(0, 'counters');
+  const counter = n => app.sheet(0).locator('.ctr').nth(n).getByRole('button', { name: '+', exact: true });
+  await counter(0).tap();
+  await counter(0).tap();
+  await counter(1).tap();
+  await app.sheet(0).getByRole('button', { name: 'Done' }).tap();
+  assert.equal(await app.panel(0).locator('.a-damage .vals .v').count(), 3, 'one damage row per hitter');
+  assert.equal(await app.panel(0).locator('.a-counters .vals .v').count(), 2, 'one counters row per nonzero counter');
+  await header(0);
+  await evidence.shot('four-player-tiles');
+  evidence.note('four players at 360x704 with three damage rows and two counter rows on You');
 };

@@ -9,7 +9,7 @@ energy, experience and rad, opens the rad reminder, and holds Concede. Nonzero v
 - `ts-tax` raises and lowers commander tax by 2 and shows the total on the Tax tile (a crown chip in Minimal), without the tile changing size.
 - `ts-storm` counts spells cast this turn and resets to 0 when the turn passes; Minimal shows a storm chip.
 - `ts-mana` counts each color of floating mana, shows the pool as pips on the Mana tile (a mana chip in Minimal), and Empty pool clears it.
-- `ts-counters` raises and lowers poison, energy, experience and rad; the Counters tile lists nonzero ones.
+- `ts-counters` raises and lowers poison, energy, experience and rad; the Counters tile lists nonzero ones, in Companion as rows under the tile's icon and label, which start where the Tax tile's do.
 - `ts-rad` opens the Radiation reminder with its rules text from the Rad name, and Close dismisses it.
 - `ts-poison-out` knocks a player out at 10 poison; Concede becomes a disabled Out.
 - `ts-concede` knocks the player out with cause conceded.
@@ -34,7 +34,7 @@ Preconditions:
 - **Undo the pass.** `await app.$('undo').tap()`: `game.storm` is 2 again and `game.active` is 0. Pass again before going on.
 - **Counters.** `await app.openTool(1, 'counters')`; `h3` reads `Counters`. Tap `plusIn(app.sheet(1), 0)` three times and `plusIn(app.sheet(1), 1)` once: `players[1].counters` has poison 3 and energy 1.
 - **Rad reminder.** Tap `app.sheet(1).getByRole('button', { name: 'What rad counters do' })`. `#radInfo` is visible and `#radText` mentions rad counters. `await app.$('radClose').tap()` hides it.
-- **Tile.** After `Done`, `app.panel(1).locator('.a-counters')` contains `3` and `1`.
+- **Tile.** After `Done`, `app.panel(1).locator('.a-counters')` contains `3` and `1`. The tile's `svg` is visible, and `app.tileHeader(1, 'counters')` reports the label under the icon, the first row under the label, and `iconTop` within 2 px of `taxIconTop`.
 - **Poison knockout.** Reopen Counters on player 1 and `await app.hold(plusIn(app.sheet(1), 0), 1400)`. Poison is at least 10, `players[1].out.cause` is `poison`, the `Out` button in the sheet is disabled, and after `Done` the panel's `.out` reads `poison`.
 - **Concede.** `await app.openTool(0, 'counters')` then tap `Concede`. `players[0].out.cause` is `concede` and the panel's `.out` reads `conceded`.
 - **Proof.** `await evidence.shot('tax-sheet')`, `('mana-sheet')`, `('counters-sheet')`, `('rad-reminder')`, `('counters-tile')`, `('poisoned-out')`, `('conceded')`, `await evidence.storeDump('both-out')`.
@@ -42,7 +42,7 @@ Preconditions:
 ## Gotchas
 
 - Storm, mana, tax, Partner and Move my seat add no undo step of their own; poison and the other counters do. Undo returns the whole game to before the last step, those included, so undoing a pass brings the storm count back and undoing a life tap drops any mana tapped after it.
-- In Companion no chips show (the tiles list every value, and Damage and Counters grow down their column); assert on the tiles. In Minimal the chips show and the poison and commander-damage ones open the status card.
+- In Companion no chips show (the tiles list every value; Tax and Mana put it in place of the icon, Damage and Counters keep the icon and label and grow rows down their column); assert on the tiles. In Minimal the chips show and the poison and commander-damage ones open the status card.
 - The counters inside a sheet are `.ctr` in order: Tax has one (two with Partner on), Mana has six (W U B R G C), Counters has four (poison, energy, experience, rad).
 - The rad image needs Scryfall once; under the stub it is a 1x1 PNG, so do not judge the picture, only that `#radInfo` opened and closed.
 - Holding past 10 poison keeps counting; assert `>= 10`.

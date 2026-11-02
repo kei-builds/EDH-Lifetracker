@@ -20,6 +20,8 @@ export const CHROME_CHANNELS = ['chrome', 'msedge'];
 
 // The target screen is a Samsung S25 class phone; 360x780 CSS px is what the design prototypes were drawn at.
 export const PHONE = { viewport: { width: 360, height: 780 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+// What Chrome leaves the app on that phone once its own bars are on screen.
+export const PHONE_WITH_BARS = { width: 360, height: 704 };
 
 export function stamp(d = new Date()) {
   const p = n => String(n).padStart(2, '0');
@@ -113,6 +115,17 @@ export function appFor(page) {
     },
     async openTool(p, kind) { await app.showTools(p); await app.panel(p).locator(`.a-${kind}`).tap(); },
     sheet: p => app.panel(p).locator('.sheet'),
+    async tileHeader(p, kind) {
+      const rot = await app.rotation(p);
+      const alongPanelDown = async loc => {
+        const b = await loc.boundingBox();
+        return { 0: [b.y, b.y + b.height], 90: [-(b.x + b.width), -b.x], 180: [-(b.y + b.height), -b.y], 270: [b.x, b.x + b.width] }[rot];
+      };
+      const tile = app.panel(p).locator(`.a-${kind}`), tax = app.panel(p).locator('.a-tax');
+      const [box, icon, label, row, taxBox, taxIcon] = await Promise.all(
+        [tile, tile.locator(':scope > svg'), tile.locator('.l'), tile.locator('.vals .v').first(), tax, tax.locator(':scope > svg')].map(alongPanelDown));
+      return { labelUnderIcon: label[0] >= icon[1] - .5, rowUnderLabel: row[0] >= label[1] - .5, iconTop: icon[0] - box[0], taxIconTop: taxIcon[0] - taxBox[0] };
+    },
     // A sideways swipe from the player's seat: along the panel's x when it faces up or down, along y when it faces a side.
     async swipe(p) {
       const b = await app.panel(p).boundingBox();

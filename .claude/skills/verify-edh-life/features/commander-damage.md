@@ -11,7 +11,7 @@ and 21 from a single commander knocks them out.
 - `cmd-face` turns every panel to face the target.
 - `cmd-count` adds damage from another player's commander and lowers the target's life by the same amount.
 - `cmd-done` leaves damage mode with Done in the hub or the back chevron on the target panel.
-- `cmd-tile` lists each source's total on the target's Damage tile.
+- `cmd-tile` lists each source's total on the target's Damage tile, in Companion as rows under the tile's icon and label, which start where the Tax tile's do.
 - `cmd-lethal` knocks the target out at 21 from one commander, with cause commander damage.
 
 ## How to get to it (user POV)
@@ -28,10 +28,11 @@ Preconditions:
 
 - **Open from the tile.** `await app.openTool(1, 'damage')`. `#table` has class `dmgMode`; `game.dmgTarget` is 1; `app.panel(1).locator('.dmg.target')` reads `Commander damage target`; panels 0 and 2 each have one `.dmgRow .ctr`; rotations are all 90.
 - **Add damage.** Tap `+` three times on Yuriko's row. `await app.panel(2).locator('.ctr').getByRole('button', { name: '+', exact: true }).tap()` ×3. The row's `b` reads `3`, `app.panel(1).locator('.dmgLife')` shows 37, `game.players[1].cmd[2][0]` is 3 and `players[1].life` is 37.
-- **Done.** `await app.$('dmgDone').tap()`. `dmgMode` is gone, `game.dmgTarget` is null, and `app.panel(1).locator('.a-damage')` contains `3`.
+- **Done.** `await app.$('dmgDone').tap()`. `dmgMode` is gone, `game.dmgTarget` is null, and `app.panel(1).locator('.a-damage')` contains `3`. The tile's `svg` is visible, and `app.tileHeader(1, 'damage')` reports the label under the icon, the first row under the label, and `iconTop` within 2 px of `taxIconTop`.
+- **Four players at 360x704.** Leave for home through the menu, `page.setViewportSize({ width: 360, height: 704 })`, start a 4-player game with every seat named, deal one damage from each opponent to You, then add two poison and one energy on You. `.a-damage .vals .v` counts 3, `.a-counters .vals .v` counts 2, and the header check holds on panel 0.
 - **Swipe in and out.** `await app.swipe(1)` enters damage mode for player 1; `await app.swipe(1)` again leaves it.
 - **Lethal.** Reopen from the tile and hold `+` on Yuriko's row: `await app.hold(plus(2), 2800)`. `cmd[2][0]` is at least 21, `players[1].out.cause` is `cmd`, and life equals 40 minus the damage. After `Done`, `app.panel(1).locator('.out')` reads `commander damage`.
-- **Proof.** `await evidence.shot('damage-mode')`, `('three-damage')`, `('tile-shows-damage')`, `('lethal-in-damage-mode')`, `('knocked-out-by-commander')`, `await evidence.storeDump('knocked-out-by-commander')`.
+- **Proof.** `await evidence.shot('damage-mode')`, `('three-damage')`, `('tile-shows-damage')`, `('lethal-in-damage-mode')`, `('knocked-out-by-commander')`, `await evidence.storeDump('knocked-out-by-commander')`, `await evidence.shot('four-player-tiles')`.
 
 ## Gotchas
 
