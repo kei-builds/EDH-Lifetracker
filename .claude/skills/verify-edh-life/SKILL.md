@@ -161,6 +161,6 @@ Name the journey and the evidence folder, state what passed and what was not cov
 lists. When a precondition is missing, the journey fails and the reason goes into that feature's `Gotchas`; do not
 loosen the journey to make it pass.
 
-Proven on 2026-11-02 against app `edh-life-16` at commit `e7968d3`: all five journeys passed in headless Chrome 156 on
+Proven on 2026-11-02 against app `edh-life-17` at commit `755f525`: all six journeys passed in headless Chrome 156 on
 Windows, emulating 360x780 with touch. That emulation stands in for the phone; the items listed under "cannot prove"
 above stay unverified until checked on the real device.
