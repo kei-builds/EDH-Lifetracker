@@ -13,6 +13,7 @@ a confirmation.
 - `ng-keep` leaves for home with the game kept and resumes it.
 - `ng-discard` starts a new game over a kept one after a confirmation card.
 - `ng-placeholders` names blank seats You, Player 2, Player 3 and so on when fewer than 4 players.
+- `ng-suggest` offers commander names from Scryfall as an opponent's seat is typed, and forgets a lookup Scryfall refused so the next letters ask again.
 
 ## How to get to it (user POV)
 
@@ -29,11 +30,12 @@ Preconditions:
 - `#syncStatus` says to add a sync URL (no settings).
 
 - **Home.** Look at the home screen. `await evidence.shot('home')`. `New game` is the primary button; `Resume game` is hidden.
+- **Suggestions after a refusal.** Inside `onSetup`, before Start game: `page.route` answers the `/cards/autocomplete` request for `q=kre` with a 429 once (`{ times: 1 }`), then `await app.$('seat1').fill('kre')` and wait for that response, `await app.$('seat1').fill('kren')`, and `#cmdList option[value="kren"]` appears. Fill the real name back before Start game.
 - **Setup and start.** Fill setup and start. `await app.newGame({ players: 2, life: 40, look: 'companion', names: ["Atraxa, Praetors' Voice", 'Krenko, Mob Boss'], first: 0, onSetup: () => evidence.shot('setup-filled') })`. The table shows with 2 panels; `await app.life(0)` and `app.life(1)` are 40; `app.panel(1).locator('.name')` contains `Krenko`; `await app.rotation(1)` is 180.
 - **Companion look.** Check the tiles. `app.panel(0)` has class `tools` and `.actions button` count is 4; `await app.theme()` is `companion`.
 - **Persistence.** Read the state. `const g = await app.game()`: `g.n` 2, `g.life0` 40, `g.players[1].name` `Krenko, Mob Boss`, `g.named` `[true, true]`, `g.active` 0, `g.round` 1. `(await app.store()).prefs.life` is `'40'` and `.players` is `'2'`. `await evidence.storeDump('after-start')`.
 - **Leave and keep.** Open the menu and go home. `await app.openMenu(); await app.$('toHome').tap()`. The home screen shows `Resume game` and the primary button reads `New game (discards current)`.
-- **Discard and Minimal.** Start another game in Minimal with blank seats. `await app.newGame({ players: 3, life: 20, look: 'minimal', first: 2 })` (the helper taps `Discard` on the card). `await app.theme()` is `minimal`; 3 panels at 20 life; rotations are `[0, 90, 270]`; `g.players` names are `You`, `Player 2`, `Player 3`; `g.active` is 2.
+- **Discard and Minimal.** Start another game in Minimal with blank seats. `await app.newGame({ players: 3, life: 20, look: 'minimal', first: 2 })` (the helper taps `Discard` on the card). `await app.theme()` is `minimal`; 3 panels at 20 life; rotations are `[0, 90, 270]`; `g.players` names are `You`, `Player 2`, `Player 3`; `g.active` is 2; `(await app.store()).prefs.life` is now `'20'` and `.players` `'3'`.
 - **Tiles on demand.** Tap the name. `await app.panel(0).locator('.head').tap()`. The panel gains class `tools`; after `await page.waitForTimeout(4300)` it loses it again.
 - **Proof.** `await evidence.shot('table-companion')`, `await evidence.aria('table-companion')`, `await evidence.shot('table-minimal-tools')`. The screenshots show the panels, the life numerals and the hub; the ARIA snapshot lists the four tiles as buttons.
 
@@ -45,3 +47,4 @@ Preconditions:
 - `Pick at random` picks who goes first and shows a toast; the journey always picks explicitly.
 - Reading `.name` with `innerText()` returns `KRENKO`; use `textContent()`.
 - In Minimal the tiles hide 4 s after the name tap, and again as soon as a tile is picked; `app.openTool` handles the first tap for you.
+- Suggestions are asked for from 3 letters on, 250 ms after the last keystroke, and a complete answer is filtered for longer queries instead of asked again. The stub echoes the typed text as the only suggestion, so a longer query after a successful stubbed answer finds nothing; the recipe above refuses the first query so the second is a real request. A page route outranks the context stub, so `{ times: 1 }` matters. The 429 lands in `summary.json`'s `failedLoads`; it is not the app's origin, so it does not fail the run.

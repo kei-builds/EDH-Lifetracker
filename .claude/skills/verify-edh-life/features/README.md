@@ -54,10 +54,11 @@ observable proof.
 - [Commander damage](./commander-damage.md) covers the Damage tile, the sideways swipe, entering damage from a seat, the tile afterwards and the lethal 21. Journey `commander-damage`.
 - [Tool sheets](./tool-sheets.md) covers Tax, Mana with storm, Counters with the rad reminder, the poison knockout and Concede. Journey `tool-sheets`.
 - [Turns and finish](./turns-and-finish.md) covers passing the turn, rounds, undoing a pass, the options menu, and ending a game that stays on the phone. Journey `turns-and-finish`.
+- [Save game](./save-game.md) covers finishing a fully named 4-player game, the Game details fields, the queue entry and the home screen count. Journey `save-game`.
 
 ## Not yet mapped
 
 These are user-facing and should get a feature file and a journey before a change to them is called verified:
-Settings and the sync test, saving a 4-player game to the queue and syncing it, the two 4-player layouts and picking
+Settings and the sync test, syncing a queued game to the sheet, the two 4-player layouts and picking
 your seat, Move my seat, partner commanders and the split tax and damage, commander art and its crop, the Minimal
 look's status card (tapping the damage or poison chip), Restart with same players, Abandon game, and 5 and 6 players.

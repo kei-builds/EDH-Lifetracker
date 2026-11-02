@@ -6,7 +6,19 @@ export default async ({ page, app, evidence, assert }) => {
   assert.match(await app.$('syncStatus').textContent(), /Add your sync URL/);
   await evidence.shot('home');
 
-  await app.newGame({ players: 2, life: 40, look: 'companion', names: NAMES, first: 0, onSetup: () => evidence.shot('setup-filled') });
+  const suggestions = async () => {
+    await page.route(u => u.pathname === '/cards/autocomplete' && u.searchParams.get('q') === 'kre',
+      route => route.fulfill({ status: 429, json: { object: 'error', status: 429 } }), { times: 1 });
+    const limited = page.waitForResponse(r => r.url().includes('/cards/autocomplete') && r.status() === 429);
+    await app.$('seat1').fill('kre');
+    await limited;
+    await app.$('seat1').fill('kren');
+    await page.locator('#cmdList option[value="kren"]').waitFor({ state: 'attached', timeout: 3000 })
+      .catch(() => assert.fail('a rate-limited lookup is forgotten, so the next letters ask Scryfall again'));
+    await app.$('seat1').fill(NAMES[1]);
+  };
+  await app.newGame({ players: 2, life: 40, look: 'companion', names: NAMES, first: 0,
+    onSetup: async () => { await evidence.shot('setup-filled'); await suggestions(); } });
   assert.equal(await app.screen(), 'table');
   assert.equal(await app.panelCount(), 2);
   assert.equal(await app.life(0), 40);
@@ -50,6 +62,9 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal(g.active, 2);
   assert.deepEqual(g.players.map(p => p.name), ['You', 'Player 2', 'Player 3'], 'blank seats get placeholder names');
   assert.ok(!(await app.panel(0).evaluate(e => e.classList.contains('tools'))), 'Minimal hides the tiles');
+  const prefs = (await app.store()).prefs;
+  assert.equal(prefs.life, '20', 'the second game\'s life is the remembered preference');
+  assert.equal(prefs.players, '3');
   await evidence.shot('table-minimal');
   await app.panel(0).locator('.head').tap();
   assert.ok(await app.panel(0).evaluate(e => e.classList.contains('tools')), 'a tap on the name shows the tiles');

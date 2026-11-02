@@ -404,6 +404,7 @@ function autocomplete(e) {
   acTimer = setTimeout(async () => {
     try {
       const res = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(q)}`);
+      if (!res.ok) return;
       const names = (await res.json()).data || [];
       acLast = { q: lq, names, complete: names.length < 20 };
       suggest(names);
@@ -583,13 +584,13 @@ const alive = () => G().players.map((p, i) => i).filter(i => !G().players[i].out
 // Undo history is saved with the game so it survives the phone closing the app. Snapshots keep only the
 // event log's length and leave out the art, so they stay small.
 const UNDO_MAX = 80;
-let repeating = false;  // true while a press-and-hold repeats, so the whole hold is one undo step
 // Taps on the same control within the delta float's window are one undo step, so Undo takes back what the float
-// showed. A held button already is: its repeats take no snapshot. Anything without a key is always its own step.
+// showed. A held button's repeats share its key and arrive 110 ms apart, so a hold is one step too, and so is a tap
+// right after it. Anything without a key is always its own step. A change made with no snapshot at all (storm, mana,
+// the seat) is no step of its own: undo restores the whole game, so the next Undo takes it back too.
 const BURST = 1500;
 let lastSnap = { key: null, at: 0 };
 function snapshot(key) {
-  if (repeating) return;
   const now = Date.now();
   if (key && key === lastSnap.key && now - lastSnap.at < BURST) { lastSnap.at = now; return; }
   lastSnap = { key: key || null, at: now };
@@ -706,7 +707,6 @@ function holdRepeat(btn, fn) {
     const x = e.clientX, y = e.clientY, id = e.pointerId;
     let done = false;
     const fire = () => { if (!done) { done = true; fn(); } };
-    const again = () => { repeating = true; try { fn(); } finally { repeating = false; } };
     // The move is watched on the window: a finger that crosses into the other half, or off the button, still cancels.
     const off = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', off); };
     const move = ev => { if (ev.pointerId === id && Math.hypot(ev.clientX - x, ev.clientY - y) > 12) { done = true; stopHolds(); off(); } };
@@ -714,7 +714,7 @@ function holdRepeat(btn, fn) {
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', off);
-    holdTimers.push(setTimeout(() => { fire(); holdTimers.push(setTimeout(() => { holdTimers.push(setInterval(again, 110)); }, 370)); }, 80));
+    holdTimers.push(setTimeout(() => { fire(); holdTimers.push(setTimeout(() => { holdTimers.push(setInterval(fn, 110)); }, 370)); }, 80));
   });
 }
 
@@ -766,7 +766,6 @@ let swipedAt = 0;
   board.addEventListener('click', e => { if (Date.now() - swipedAt < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
 })();
 
-// The status card a swipe flips a panel to: commander damage from every opponent, then the player's nonzero counters.
 function infoCard(p) {
   const g = G();
   const pl = g.players[p];
@@ -1041,7 +1040,7 @@ function sheet(p, kind) {
     btns.appendChild(t);
   } else if (kind === 'mana') {
     // Storm counts spells cast this turn by everyone, so it is one number for the game; games saved before it existed
-    // have none. Like the mana pool it stays out of the undo history.
+    // have none.
     const storm = el('button', 'storm');
     storm.append(el('span', 'l', 'Storm'), el('b', null, G().storm || 0));
     storm.onclick = () => { G().storm = (G().storm || 0) + 1; commit(); };
@@ -1153,7 +1152,7 @@ $('resetLife').onclick = async () => {
   $('menu').classList.add('hidden');
   commit();
 };
-// Steps your panel one cell clockwise, for a seat noticed after the game started. Not an undo step, like the look.
+// Steps your panel one cell clockwise, for a seat noticed after the game started.
 $('moveSeat').onclick = () => {
   const g = G();
   g.seat = ((g.seat || 0) + 1) % g.n;
@@ -1219,6 +1218,7 @@ $('saveGame').onclick = () => {
       msg('finishMsg', 'Fill in the pod and power under Game details.', true);
       return;
     }
+    if (!$('date').value) { $('detailsWrap').open = true; msg('finishMsg', 'Pick a date.', true); return; }
     const w = picked.winner;
     const mySeat = turnPos(0) + 1;
     store.queue.push({

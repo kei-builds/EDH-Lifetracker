@@ -51,7 +51,7 @@ function checkKey_(key) {
   if (!expected || key !== expected) throw new Error('Wrong sync key.');
 }
 
-function lastGameRow_(sh) {
+function lastRow_(sh) {
   const a = sh.getRange('A2:A').getValues();
   let i = a.length;
   while (i > 0 && a[i - 1][0] === '') i--;
@@ -60,7 +60,7 @@ function lastGameRow_(sh) {
 
 function lists_(ss) {
   const games = ss.getSheetByName('Games');
-  const last = lastGameRow_(games);
+  const last = lastRow_(games);
   const rows = last > 1 ? games.getRange(2, 1, last - 1, 4).getValues() : [];
   const order = { Active: 0, Temporary: 1, Retired: 2 };
   const decks = ss.getSheetByName('Decks I\'ve Played').getRange('A2:B').getValues()
@@ -88,7 +88,7 @@ function saveGame_(ss, g) {
   addDeck_(ss, names(s.deck));
 
   const games = ss.getSheetByName('Games');
-  const row = lastGameRow_(games) + 1;
+  const row = lastRow_(games) + 1;
   const tz = ss.getSpreadsheetTimeZone();
   const n = v => (v === '' || v == null ? '' : Number(v));
   games.getRange(row, 1, 1, 10).setValues([[
@@ -148,7 +148,7 @@ function addCommanders_(ss, names, colors) {
     rows.push([n, letters, letters ? (colorNames[letters] || letters) : '', source]);
   });
   if (rows.length) {
-    const start = known.length + 2;
+    const start = lastRow_(sh) + 1;
     sh.getRange(start, 1, rows.length, 4).setValues(rows);
     sh.getRange(2, 1, start + rows.length - 2, 4).sort(1);
   }
@@ -175,5 +175,5 @@ function scryfallLetters_(name) {
 function addDeck_(ss, deck) {
   const sh = ss.getSheetByName('Decks I\'ve Played');
   const decks = sh.getRange('A2:A').getValues().map(r => String(r[0])).filter(Boolean);
-  if (!decks.includes(deck)) sh.getRange(decks.length + 2, 1, 1, 2).setValues([[deck, 'Temporary']]);
+  if (!decks.includes(deck)) sh.getRange(lastRow_(sh) + 1, 1, 1, 2).setValues([[deck, 'Temporary']]);
 }
