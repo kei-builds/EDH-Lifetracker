@@ -745,8 +745,9 @@ function renderTable() {
   $('table').classList.toggle('dmgMode', g.dmgTarget != null);
   const hub = $('hub');
   hub.classList.toggle('edge', g.n === 1);
-  // The seam through the middle of the board runs top to bottom whenever there are two columns.
-  hub.style.setProperty('--seam', layout.cols === '1fr' ? 'row' : 'column');
+  // The hub lines up along the seam through the middle of the board: top to bottom between two columns, except in
+  // two per side, where the middle is a four-way junction and a row across it reads better.
+  hub.style.setProperty('--seam', layout.cols === '1fr' || g.layout === '4sides' ? 'row' : 'column');
   if (g.dmgTarget != null) {
     // The middle of the edge where the target's panel meets the table (its face's top edge), so a look can put the
     // hub on that seam, turned to face the target like every panel.

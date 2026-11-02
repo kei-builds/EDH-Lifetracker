@@ -391,6 +391,9 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 [data-theme="minimal"] .sheet { background: rgba(10, 10, 14, .9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); padding: 8px 10px; gap: 6px; }
 /* On a side panel the hub lies along the sheet's top edge, so the title keeps to the corner. */
 [data-theme="minimal"] .sheet h3 { text-align: left; padding-left: 4px; }
+[data-theme="minimal"] :is([data-layout="3"], [data-layout="4sides"], [data-layout="6"]) .sheet h3 { text-align: center; padding-left: 0; }
+/* One at each end: the side sheets' top edge is the seam the hub runs along, so their title is tighter to end before it. */
+[data-theme="minimal"] [data-layout="4ends"] :is(.r90, .r270) .sheet h3 { font-size: 12px; letter-spacing: .08em; }
 [data-theme="minimal"] .sheet .ctr, [data-theme="minimal"] .storm { border-color: rgba(255, 255, 255, .12); border-radius: 14px;
   background: rgba(255, 255, 255, .07); }
 /* Like the sheet titles before it, storm's label keeps to the corner, clear of the hub on a side sheet's top edge. Where the
@@ -405,9 +408,9 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
    splits into halves like the life total, its label a caption. */
 [data-theme="minimal"] .sheet .ctr button { max-height: none; }
 [data-theme="minimal"] .sheet .ctr.vert button { flex: 1; }
-[data-theme="minimal"] .grid:not(.two):not(.six) .ctr { position: relative; }
-[data-theme="minimal"] .grid:not(.two):not(.six) .ctr span { position: absolute; top: 12px; left: 0; right: 0; }
-[data-theme="minimal"] .grid:not(.two):not(.six) .ctr button { flex: 1; }
+[data-theme="minimal"] .grid:not(.two):not(.six) .ctr { flex-wrap: wrap; align-content: center; padding: 6px 2px; }
+[data-theme="minimal"] .grid:not(.two):not(.six) .ctr span { flex: 1 0 100%; margin-bottom: 2px; }
+[data-theme="minimal"] .grid:not(.two):not(.six) .ctr button { flex: 1; height: auto; min-height: 56px; }
 [data-theme="minimal"] .grid:not(.two):not(.six) .ctr button:first-of-type { text-align: right; padding-right: 18px; }
 [data-theme="minimal"] .grid:not(.two):not(.six) .ctr button:last-of-type { text-align: left; padding-left: 18px; }
 [data-theme="minimal"] .sheetBtns button { min-height: 34px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .1); }
