@@ -641,14 +641,85 @@ function showDelta(p, d) {
 let holdTimers = [];
 function stopHolds() { holdTimers.forEach(t => { clearTimeout(t); clearInterval(t); }); holdTimers = []; }
 ['pointerup', 'pointercancel', 'blur'].forEach(t => window.addEventListener(t, stopHolds));
+// A tap counts when the finger lifts, or 80 ms in if it is still down, so a hold starts at once and keeps counting.
+// Moving more than 12 px before that is the start of a swipe, not a tap, and counts nothing.
 function holdRepeat(btn, fn) {
   btn.addEventListener('pointerdown', e => {
     e.preventDefault();
     stopHolds();
-    fn();
+    const x = e.clientX, y = e.clientY, id = e.pointerId;
+    let done = false;
+    const fire = () => { if (!done) { done = true; fn(); } };
     const again = () => { repeating = true; try { fn(); } finally { repeating = false; } };
-    holdTimers.push(setTimeout(() => { holdTimers.push(setInterval(again, 110)); }, 450));
+    const off = () => { btn.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', off); };
+    const move = ev => { if (ev.pointerId === id && Math.hypot(ev.clientX - x, ev.clientY - y) > 12) { done = true; stopHolds(); off(); } };
+    const up = ev => { if (ev.pointerId === id) { fire(); off(); } };
+    btn.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', off);
+    holdTimers.push(setTimeout(() => { fire(); holdTimers.push(setTimeout(() => { holdTimers.push(setInterval(again, 110)); }, 370)); }, 80));
   });
+}
+
+// A sideways swipe, from the player's own point of view, flips their panel to its status card and back. It is tracked
+// on the board, which outlives the re-render a counted tap causes mid-gesture. A swipe that began on a button must not
+// also count as that button's tap, so the click that follows it is swallowed.
+let swipedAt = 0;
+(() => {
+  const board = $('board');
+  let start = null;
+  board.addEventListener('pointerdown', e => {
+    const panel = e.target.closest('.panel');
+    const p = panel ? [...board.children].indexOf(panel) : -1;
+    start = p < 0 ? null : { x: e.clientX, y: e.clientY, id: e.pointerId, p, rot: cellOf(G(), p)[1] };
+  });
+  board.addEventListener('pointermove', e => {
+    if (!start || e.pointerId !== start.id) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    const [along, across] = start.rot % 180 ? [dy, dx] : [dx, dy];
+    if (Math.abs(along) < 40 || Math.abs(along) < Math.abs(across) * 1.5) return;
+    const p = start.p;
+    start = null;
+    stopHolds();
+    swipedAt = Date.now();
+    if (ui[p].sheet || G().dmgTarget != null) return;
+    ui[p].info = !ui[p].info;
+    renderTable();
+  });
+  ['pointerup', 'pointercancel'].forEach(t => board.addEventListener(t, () => { start = null; }));
+  board.addEventListener('click', e => { if (Date.now() - swipedAt < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
+})();
+
+// The status card a swipe flips a panel to: commander damage from every opponent, then the player's nonzero counters.
+function infoCard(p) {
+  const g = G();
+  const pl = g.players[p];
+  const card = el('div', 'sheet info');
+  card.appendChild(el('h3', null, 'Commander damage'));
+  const rows = el('div', 'infoRows');
+  g.players.forEach((src, s) => {
+    if (s === p) return;
+    const [a, b] = pl.cmd[s];
+    const row = el('div', 'infoRow' + (a >= 21 || b >= 21 ? ' lethal' : a >= 15 || b >= 15 ? ' warn' : ''));
+    const who = el('i', null, g.named[s] ? shortName(src.name)[0].toUpperCase() : String(s + 1));
+    who.style.background = tint(src.letters);
+    const split = src.partner || b > 0;
+    row.append(who, el('span', 'nm', split ? commanderNames(src).join(' & ') : shortName(src.name)), el('b', null, split ? `${a} / ${b}` : String(a)));
+    rows.appendChild(row);
+  });
+  COUNTERS.forEach(([k, label, icon]) => {
+    const n = pl.counters[k];
+    if (!n) return;
+    const row = el('div', 'infoRow' + (k === 'poison' ? (n >= 10 ? ' lethal' : n >= 7 ? ' warn' : '') : ''));
+    const ic = el('i', 'ic');
+    ic.innerHTML = iconSvg(icon);
+    row.append(ic, el('span', 'nm', label), el('b', null, String(n)));
+    rows.appendChild(row);
+  });
+  card.appendChild(rows);
+  card.appendChild(el('small', 'hint', 'Swipe or tap to go back'));
+  card.onclick = () => { ui[p].info = false; renderTable(); };
+  return card;
 }
 
 // ---------- the table ----------
@@ -683,7 +754,7 @@ function counter(label, value, dec, inc, extra) {
 
 // Per-panel view state that isn't part of the game, so it's never saved. sheet is the open overlay
 // ('tax' | 'mana' | 'counters' | null); tools is whether the on-demand toolbar is showing, and timer hides it again.
-const ui = LAYOUTS[6].seats.map(() => ({ sheet: null, tools: false, timer: null }));
+const ui = LAYOUTS[6].seats.map(() => ({ sheet: null, info: false, tools: false, timer: null }));
 function setTools(p, on) {
   clearTimeout(ui[p].timer);
   ui[p].tools = on;
@@ -778,6 +849,8 @@ function buildFace(face, p) {
   const chip = (name, label, value, cls) => {
     const c = withIcon('span', cls, name, label);
     c.append(String(value));
+    // The chips a look leaves to its tiles open the status card where they do show (Minimal).
+    if (cls && cls.includes('tiled')) { c.onclick = () => { ui[p].info = true; renderTable(); }; c.setAttribute('role', 'button'); }
     badges.appendChild(c);
   };
   // "tiled" chips repeat what the Damage and Counters tiles list, so a look whose tiles always show can drop them.
@@ -828,6 +901,7 @@ function buildFace(face, p) {
   const lay = el('div', 'lay');
   lay.append(head, badges, strip, actions, more);
   face.appendChild(lay);
+  if (ui[p].info) face.appendChild(infoCard(p));
   if (ui[p].sheet) face.appendChild(sheet(p, ui[p].sheet));
   if (pl.out) {
     const out = el('div', 'out');

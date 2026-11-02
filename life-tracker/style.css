@@ -90,6 +90,8 @@ label.check input { width: 22px; height: 22px; accent-color: var(--accent); }
 
 /* ---------- the table, shared by both looks ---------- */
 #table { position: fixed; inset: 0; user-select: none; -webkit-user-select: none; touch-action: manipulation; background: #000; }
+/* Nothing on the board scrolls, so touches are the app's: swipes reach the panels instead of starting a browser gesture. */
+#board { touch-action: none; overscroll-behavior: none; }
 .board { position: absolute; display: grid; gap: 4px; }
 .panel { position: relative; overflow: hidden; container-type: size; background: #1a1a1f; }
 .panel.active::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; border-radius: inherit; }
@@ -197,6 +199,26 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
   .ctr.vert b { font-size: 22px; }
 }
 .pip { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex: none; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); }
+/* The status card a sideways swipe flips a panel to: one row per opponent, then counters. A tap anywhere goes back. */
+.info { justify-content: center; gap: 4px; cursor: pointer; }
+/* A centered table whose columns are only as wide as the names and numbers need, so it stays compact on a wide,
+   short side panel; a name longer than the room ellipsizes. */
+.infoRows { display: grid; grid-template-columns: 18px minmax(0, max-content) max-content; gap: 4px 9px; justify-content: center;
+  align-items: center; max-width: 100%; min-height: 0; overflow: hidden; font-family: var(--cond); font-weight: 600; font-size: 15px;
+  letter-spacing: .04em; text-transform: uppercase; }
+.infoRow { display: contents; }
+[data-theme] .sheet.info h3 { text-align: center; padding-left: 0; }
+.infoRow i { width: 18px; height: 18px; flex: none; border-radius: 4px; font: normal 700 11px/18px var(--cond); text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .55), inset 0 0 0 9px rgba(0, 0, 0, .3); }
+.infoRow i.ic { background: none; box-shadow: none; display: flex; align-items: center; justify-content: center; }
+.infoRow i.ic svg { width: 16px; height: 16px; stroke-width: 2; }
+.infoRow .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.infoRow b { font-family: var(--num); font-weight: 700; font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; }
+.infoRow.warn b { color: var(--caution); }
+.infoRow.lethal b { color: var(--danger); }
+.info .hint { text-align: center; font-family: var(--cond); font-weight: 600; font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(255, 255, 255, .5); }
+[data-theme="minimal"] .badges .tiled { pointer-events: auto; cursor: pointer; }
 .sheetBtns { display: flex; gap: 6px; }
 .sheetBtns button { flex: 1; min-height: 32px; border: 1px solid rgba(255, 255, 255, .35); border-radius: 6px; background: transparent;
   font-family: var(--cond); font-weight: 700; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; }
