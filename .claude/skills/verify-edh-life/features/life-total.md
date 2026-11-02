@@ -9,7 +9,7 @@ knocked out at 0.
 - `life-tap` changes life by one per tap on either half.
 - `life-delta` floats the running total (`+3`, `-3`) beside the numeral for about 1.5 s.
 - `life-hold` keeps counting while a half is held.
-- `life-undo-burst` treats taps on one control within 1.5 s of each other, or one hold, as a single undo step.
+- `life-undo-burst` treats taps on one control within 1.5 s of each other, or one hold and any tap within 1.5 s of its release, as a single undo step.
 - `life-colors` tints the numeral amber at 10 or below and red at 5 or below.
 - `life-out` marks the player Out at 0 with the turn and cause, and offers Finish when one player is left.
 
@@ -28,6 +28,7 @@ Preconditions:
 - **Three taps.** Tap the opponent's minus half three times. `await app.tapLife(1, -1, 3)`. `await app.life(1)` is 37 and `await app.delta(1)` is `-3`. `await app.game()` has `players[1].life` 37 and three events with a `life` field; `(await app.store()).undo.length` is 1.
 - **Undo the burst.** Tap Undo. `await app.$('undo').tap()`. Life is back to 40 and the undo stack is empty.
 - **Hold.** Hold the user's plus half. `await app.hold(app.lifeButton(0, 1), 900)`. Life is between 42 and 47. One `Undo` returns it to 40.
+- **Long hold then tap.** `await app.hold(app.lifeButton(0, -1), 2000); await app.tapLife(0, -1)`. Life is between 22 and 27 and the undo stack grew by 1. One `Undo` returns it to 40.
 - **A pause splits.** `await app.tapLife(1, -1, 2); await page.waitForTimeout(1700); await app.tapLife(1, -1, 2)`. Life is 36 and the undo stack grew by 2. One `Undo` gives 38, a second 40.
 - **Low life.** Tap the opponent down. `await app.tapLife(1, -1, 30)` gives 10 and `app.panel(1).locator('.num.warn')` exists; five more give 5 and `.num.lethal` exists.
 - **Knockout.** Five more taps reach 0. `app.panel(1).locator('.out')` reads `Out` and `turn 1 · life`; `game.players[1].out.cause` is `life`; `#turnLabel` reads `Finish`.

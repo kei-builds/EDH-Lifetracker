@@ -583,13 +583,12 @@ const alive = () => G().players.map((p, i) => i).filter(i => !G().players[i].out
 // Undo history is saved with the game so it survives the phone closing the app. Snapshots keep only the
 // event log's length and leave out the art, so they stay small.
 const UNDO_MAX = 80;
-let repeating = false;  // true while a press-and-hold repeats, so the whole hold is one undo step
 // Taps on the same control within the delta float's window are one undo step, so Undo takes back what the float
-// showed. A held button already is: its repeats take no snapshot. Anything without a key is always its own step.
+// showed. A held button's repeats share its key and arrive 110 ms apart, so a hold is one step too, and so is a tap
+// right after it. Anything without a key is always its own step.
 const BURST = 1500;
 let lastSnap = { key: null, at: 0 };
 function snapshot(key) {
-  if (repeating) return;
   const now = Date.now();
   if (key && key === lastSnap.key && now - lastSnap.at < BURST) { lastSnap.at = now; return; }
   lastSnap = { key: key || null, at: now };
@@ -706,7 +705,6 @@ function holdRepeat(btn, fn) {
     const x = e.clientX, y = e.clientY, id = e.pointerId;
     let done = false;
     const fire = () => { if (!done) { done = true; fn(); } };
-    const again = () => { repeating = true; try { fn(); } finally { repeating = false; } };
     // The move is watched on the window: a finger that crosses into the other half, or off the button, still cancels.
     const off = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', off); };
     const move = ev => { if (ev.pointerId === id && Math.hypot(ev.clientX - x, ev.clientY - y) > 12) { done = true; stopHolds(); off(); } };
@@ -714,7 +712,7 @@ function holdRepeat(btn, fn) {
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', off);
-    holdTimers.push(setTimeout(() => { fire(); holdTimers.push(setTimeout(() => { holdTimers.push(setInterval(again, 110)); }, 370)); }, 80));
+    holdTimers.push(setTimeout(() => { fire(); holdTimers.push(setTimeout(() => { holdTimers.push(setInterval(fn, 110)); }, 370)); }, 80));
   });
 }
 

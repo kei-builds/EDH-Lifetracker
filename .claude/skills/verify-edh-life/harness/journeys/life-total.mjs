@@ -24,6 +24,16 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal(await app.life(0), 40, 'the hold is one undo step');
   evidence.note('hold counted and undid as one step', { held });
 
+  const beforeLong = (await app.store()).undo.length;
+  await app.hold(app.lifeButton(0, -1), 2000);
+  await app.tapLife(0, -1);
+  const afterLong = await app.life(0);
+  assert.ok(afterLong >= 22 && afterLong <= 27, `a 2 s hold then a tap keeps counting (got ${afterLong})`);
+  assert.equal((await app.store()).undo.length, beforeLong + 1, 'a tap right after a long hold joins the hold\'s undo step');
+  await app.$('undo').tap();
+  assert.equal(await app.life(0), 40, 'one Undo takes back the hold and the tap');
+  evidence.note('long hold and a tap undid as one step', { life: afterLong });
+
   const steps = (await app.store()).undo.length;
   await app.tapLife(1, -1, 2);
   await page.waitForTimeout(1700);
