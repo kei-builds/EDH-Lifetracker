@@ -1,5 +1,5 @@
 // Caches the app so it opens without a connection. Bump VERSION when the files change.
-const VERSION = 'edh-life-18';
+const VERSION = 'edh-life-19';
 const ART = 'edh-life-art';  // commander art and the Radiation token, kept across versions
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 // The app works without these, so a missing one must not stop the install.

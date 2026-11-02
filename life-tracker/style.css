@@ -336,10 +336,11 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 [data-theme="companion"] .a-damage { grid-area: 2 / 1; }
 [data-theme="companion"] .a-mana { grid-area: 1 / 3; }
 [data-theme="companion"] .a-counters { grid-area: 2 / 3; }
-/* Damage and Counters grow rows, so they take the rest of their column, and their icon starts where Tax centers its own:
-   32px of icon, gap and label inside --nh less 2px of border. */
-[data-theme="companion"] .actions .a-damage, [data-theme="companion"] .actions .a-counters { align-self: stretch; height: auto; justify-content: flex-start;
+/* Damage and Counters grow rows, so with values they take as much of their column as the rows need, and their icon
+   starts where Tax centers its own: 32px of icon, gap and label inside --nh less 2px of border. Empty, they are Tax's size. */
+[data-theme="companion"] .actions .a-damage, [data-theme="companion"] .actions .a-counters { align-self: start; height: var(--nh); justify-content: flex-start;
   padding-top: calc((var(--nh) - 34px) / 2); }
+[data-theme="companion"] .actions :is(.a-damage, .a-counters):has(> .vals) { height: auto; max-height: 100%; }
 [data-theme="companion"] .a-tax .vals, [data-theme="companion"] .a-mana .vals { flex-wrap: nowrap; gap: 4px; }
 [data-theme="companion"] .a-tax .v, [data-theme="companion"] .a-mana .v { font-size: 15px; }
 [data-theme="companion"] .vals .pip { width: 11px; height: 11px; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); }
@@ -349,8 +350,13 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
    colors, then the total. */
 [data-theme="companion"] .actions :is(.a-tax, .a-mana):has(> .vals) > svg { display: none; }
 [data-theme="companion"] .actions .vals { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px 7px; max-width: 100%; }
-[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals { order: 1; margin-top: 4px; flex-direction: column; flex-wrap: nowrap; gap: 5px;
-  min-height: 0; overflow: hidden; }
+/* Rows and their gaps scale with the face's height, so four rows fit the short side panels and fill the long end ones. */
+[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals { order: 1; margin: clamp(3px, 2cqh, 8px) 0 2px; flex-direction: column;
+  flex-wrap: nowrap; gap: clamp(2px, 2cqh, 9px); min-height: 0; overflow: hidden; }
+[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals .v { font-size: clamp(15px, 9cqh, 19px); gap: 5px; }
+[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals i { width: clamp(15px, 9cqh, 18px); height: clamp(15px, 9cqh, 18px);
+  font-size: clamp(10px, 6cqh, 12px); line-height: clamp(15px, 9cqh, 18px); }
+[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals svg { width: clamp(15px, 9cqh, 19px); height: clamp(15px, 9cqh, 19px); }
 [data-theme="companion"] .vals .v { display: inline-flex; align-items: center; gap: 3px; font-family: var(--num); font-size: 14px;
   letter-spacing: 0; font-variant-numeric: tabular-nums; }
 [data-theme="companion"] .vals i { width: 13px; height: 13px; flex: none; border-radius: 3px; font: normal 700 9px/13px var(--cond);

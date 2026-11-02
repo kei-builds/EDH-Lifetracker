@@ -75,6 +75,20 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal(await app.panel(0).locator('.a-damage .vals .v').count(), 3, 'one damage row per hitter');
   assert.equal(await app.panel(0).locator('.a-counters .vals .v').count(), 2, 'one counters row per nonzero counter');
   await header(0);
+  const size = async (p, kind) => { const b = await app.panel(p).locator(`.a-${kind}`).boundingBox(); return [Math.round(b.width), Math.round(b.height)]; };
+  assert.deepEqual(await size(1, 'damage'), await size(1, 'tax'), 'an empty Damage tile matches the Tax tile in size');
+  assert.deepEqual(await size(1, 'counters'), await size(1, 'mana'), 'an empty Counters tile matches the Mana tile in size');
+  assert.notDeepEqual(await size(0, 'damage'), await size(0, 'tax'), 'a Damage tile with rows has grown past the Tax tile');
+  const inside = (p, kind) => app.panel(p).locator(`.a-${kind}`).evaluate(tile => {
+    const t = tile.getBoundingClientRect();
+    return [...tile.querySelectorAll('.vals .v')].every(r => { const b = r.getBoundingClientRect(); return b.left >= t.left - .5 && b.top >= t.top - .5 && b.right <= t.right + .5 && b.bottom <= t.bottom + .5; });
+  });
+  assert.ok(await inside(0, 'damage') && await inside(0, 'counters'), 'every row sits inside its tile');
+  await app.openTool(0, 'damage');
+  await plus(0).tap();
+  await app.$('dmgDone').tap();
+  assert.equal(await app.panel(0).locator('.a-damage .vals .v').count(), 4, 'damage from your own commander makes a fourth row');
+  assert.ok(await inside(0, 'damage'), 'four rows still fit inside the tile on a phone with bars');
   await evidence.shot('four-player-tiles');
   evidence.note('four players at 360x704 with three damage rows and two counter rows on You');
 };
