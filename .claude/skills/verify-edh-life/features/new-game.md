@@ -13,7 +13,7 @@ a confirmation.
 - `ng-keep` leaves for home with the game kept and resumes it.
 - `ng-discard` starts a new game over a kept one after a confirmation card.
 - `ng-placeholders` names blank seats You, Player 2, Player 3 and so on when fewer than 4 players.
-- `ng-suggest` offers commander names from Scryfall as an opponent's seat is typed, and forgets a lookup Scryfall refused so the next letters ask again.
+- `ng-suggest` offers commander names from Scryfall as any seat is typed, your own included, and forgets a lookup Scryfall refused so the next letters ask again.
 
 ## How to get to it (user POV)
 

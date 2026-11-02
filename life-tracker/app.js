@@ -391,13 +391,15 @@ async function resolveName(n) {
 
 // Name suggestions: Scryfall's autocomplete answers at most 20 names. When an answer had fewer, every longer query that
 // starts with the same letters is a subset of it, so those are filtered here instead of asked for again.
+// Every seat suggests the same names: your decks from the sheet first, then every commander it knows, then Scryfall.
+const knownNames = () => store.lists.decks.concat(store.lists.commanders.map(c => c[0]));
 let acTimer = null;
 let acLast = null;
 function autocomplete(e) {
   const q = e.target.value.trim();
   clearTimeout(acTimer);
   if (q.length < 3) return;
-  const suggest = names => fillList('cmdList', [...new Set(names.concat(store.lists.commanders.map(c => c[0])))]);
+  const suggest = names => fillList('cmdList', [...new Set(knownNames().concat(names))]);
   const lq = q.toLowerCase();
   if (acLast && acLast.complete && lq.startsWith(acLast.q)) { suggest(acLast.names.filter(n => n.toLowerCase().includes(lq))); return; }
   if (!navigator.onLine) return;
@@ -471,10 +473,10 @@ function renderSeats() {
     const input = el('input');
     input.id = `seat${i}`;
     input.autocomplete = 'off';
-    input.setAttribute('list', i === 0 ? 'deckList' : 'cmdList');
+    input.setAttribute('list', 'cmdList');
     input.placeholder = 'Commander';
     input.value = old[input.id] || '';
-    if (i > 0) input.addEventListener('input', autocomplete);
+    input.addEventListener('input', autocomplete);
     // Off, the partner field is only hidden, so its name comes back if the switch goes on again.
     const partner = el('input', picked.partner[i] ? '' : 'hidden');
     partner.id = `partner${i}`;
@@ -504,8 +506,7 @@ function renderSeats() {
 function openSetup() {
   const p = store.prefs;
   fillList('podList', store.lists.pods);
-  fillList('deckList', store.lists.decks);
-  fillList('cmdList', store.lists.commanders.map(c => c[0]));
+  fillList('cmdList', knownNames());
   $('seats').innerHTML = '';
   seg('startLife', ['20', '25', '30', '40', '50', '60'], p.life);
   seg('playerCount', ['1', '2', '3', '4', '5', '6'], p.players, renderSeats);
@@ -1153,6 +1154,15 @@ $('resetLife').onclick = async () => {
   commit();
 };
 // Steps your panel one cell clockwise, for a seat noticed after the game started.
+// The same preference Settings and setup set; the table is rebuilt in place so the look changes under the players.
+$('switchLook').onclick = () => {
+  const looks = Object.keys(THEMES);
+  store.prefs.theme = looks[(looks.indexOf(store.prefs.theme) + 1) % looks.length];
+  persist();
+  applyTheme();
+  $('menu').classList.add('hidden');
+  renderTable();
+};
 $('moveSeat').onclick = () => {
   const g = G();
   g.seat = ((g.seat || 0) + 1) % g.n;

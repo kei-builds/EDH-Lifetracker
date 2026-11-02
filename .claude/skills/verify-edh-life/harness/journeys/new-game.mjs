@@ -7,6 +7,10 @@ export default async ({ page, app, evidence, assert }) => {
   await evidence.shot('home');
 
   const suggestions = async () => {
+    await app.$('seat0').fill('atr');
+    await page.locator('#cmdList option[value="atr"]').waitFor({ state: 'attached', timeout: 3000 })
+      .catch(() => assert.fail('your own seat gets Scryfall suggestions like the others'));
+    await app.$('seat0').fill(NAMES[0]);
     await page.route(u => u.pathname === '/cards/autocomplete' && u.searchParams.get('q') === 'kre',
       route => route.fulfill({ status: 429, json: { object: 'error', status: 429 } }), { times: 1 });
     const limited = page.waitForResponse(r => r.url().includes('/cards/autocomplete') && r.status() === 429);

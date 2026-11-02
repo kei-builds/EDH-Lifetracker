@@ -10,6 +10,7 @@ for anything but a fully named 4-player game ends the game on the phone without 
 - `tf-round` increments the turn count when play returns to the first player.
 - `tf-undo-pass` undoes one pass as one step.
 - `tf-menu` opens the options menu from the hub.
+- `tf-switch-look` switches the look from the menu, rebuilds the table in place, saves it as the preference, and switches back the same way.
 - `tf-keep` goes home with the game kept and resumes from the home screen.
 - `tf-finish-screen` opens the end screen pre-filled from the game, with the sheet-only details hidden for a game that is not sent.
 - `tf-winner-required` refuses to end without a winner.

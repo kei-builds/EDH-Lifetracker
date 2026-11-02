@@ -29,6 +29,18 @@ export default async ({ page, app, evidence, assert }) => {
 
   await app.openMenu();
   await evidence.shot('menu');
+  const lookBefore = await app.theme();
+  await app.$('switchLook').tap();
+  assert.ok(await app.$('menu').evaluate(e => e.classList.contains('hidden')), 'Switch look closes the menu');
+  assert.notEqual(await app.theme(), lookBefore, 'Switch look changes the look in place');
+  assert.equal((await app.store()).prefs.theme, await app.theme(), 'the switched look is saved as the preference');
+  assert.equal(await app.panel(0).evaluate(e => e.classList.contains('tools')), (await app.theme()) === 'companion', 'the table is rebuilt for the new look');
+  await evidence.shot('switched-look');
+  await app.openMenu();
+  await app.$('switchLook').tap();
+  assert.equal(await app.theme(), lookBefore, 'a second Switch look returns to the first look');
+  evidence.note('look switched from the menu and back', { from: lookBefore });
+  await app.openMenu();
   await app.$('toHome').tap();
   assert.equal(await app.screen(), 'home');
   await app.$('resumeGame').tap();
