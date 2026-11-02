@@ -27,10 +27,11 @@ The sync endpoint is its own Apps Script project, separate from the game form, s
 
 ## 2. Host the app (GitHub Pages, free)
 
-1. On github.com, create a new **public** repository, for example `edh-life`.
-2. Click **Add file → Upload files** and upload everything in this folder **except** the `sync` folder: `index.html`, `app.js`, `style.css`, `sw.js`, `manifest.webmanifest`, `icon.svg`, `icon-192.png`, `icon-512.png`, `README.md`, and the `fonts` and `licenses` folders.
-3. Go to **Settings → Pages** and set Source to **Deploy from a branch**, Branch to `main` / `(root)`, then save.
-4. After a minute the site is live at `https://<your-username>.github.io/edh-life/`.
+1. On github.com, create a new **public** repository (Pages on a free account needs public).
+2. Push this whole project to its `main` branch. `.github/workflows/pages.yml` publishes the `life-tracker` folder on every push.
+3. If the first workflow run fails on the Pages step, go to **Settings → Pages** and set Source to **GitHub Actions**, then rerun it.
+4. After a minute the site is live at `https://<your-username>.github.io/<repository>/`.
+5. To ship a change: bump `VERSION` in `sw.js`, commit, push. The installed app picks the new version up on its next open.
 
 ## 3. Install on your phone
 
