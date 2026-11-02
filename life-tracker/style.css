@@ -277,8 +277,11 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 .menu { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(300px, 86vw);
   background: #07070b; border: 1px solid var(--hair); border-radius: 8px; padding: 10px; z-index: 10;
   display: flex; flex-direction: column; gap: 6px; box-shadow: 0 10px 40px rgba(0, 0, 0, .8); }
-.menu button { min-height: 46px; border: 1px solid var(--hair); border-radius: 6px; background: transparent; font-family: var(--cond);
+.menu button, .menu a { min-height: 46px; border: 1px solid var(--hair); border-radius: 6px; background: transparent; font-family: var(--cond);
   font-weight: 700; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; }
+/* Links out (Scryfall, the rules) look like the buttons; the arrow says they leave the app. */
+.menu a { display: flex; align-items: center; justify-content: center; gap: 6px; color: inherit; text-decoration: none; }
+.menu a::after { content: '\2197'; font-size: 13px; opacity: .7; }
 .menu .danger { color: var(--danger); border-color: rgba(224, 72, 61, .7); }
 /* The question card is outside the table screen so it can also ask from the home screen. */
 .confirm { position: fixed; z-index: 30; }
@@ -458,6 +461,10 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 [data-theme="minimal"] .hubBtn { width: 34px; height: 34px; padding: 0; border-radius: 50%; background: #0d0d10; color: rgba(255, 255, 255, .9);
   box-shadow: 0 4px 14px rgba(0, 0, 0, .6); }
 [data-theme="minimal"] .hubBtn svg { width: 17px; height: 17px; }
+/* The hub's round buttons turn to face the active player, so the turn reads upright from their seat; the turn itself
+   animates so the move is seen. In damage mode the whole hub already faces the target, so the buttons stay put. */
+[data-theme="minimal"] .hubBtn, [data-theme="minimal"] .turn { transform: rotate(var(--hub-rot, 0deg)); transition: transform .25s ease; }
+[data-theme="minimal"] .dmgMode .hubBtn, [data-theme="minimal"] .dmgMode .turn { transform: none; }
 [data-theme="minimal"] .turn { width: 56px; height: 56px; padding: 0; border: 2px solid rgba(255, 255, 255, .9); border-radius: 50%;
   background: #0d0d10; box-shadow: 0 6px 18px rgba(0, 0, 0, .6); font-size: 24px; letter-spacing: 0; }
 [data-theme="minimal"] .turn small { margin-top: 2px; max-width: 46px; font-size: 8px; font-weight: 600; letter-spacing: .12em; color: var(--muted); }

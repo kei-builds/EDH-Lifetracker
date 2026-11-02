@@ -661,9 +661,10 @@ function holdRepeat(btn, fn) {
   });
 }
 
-// A sideways swipe, from the player's own point of view, flips their panel to its status card and back. It is tracked
-// on the board, which outlives the re-render a counted tap causes mid-gesture. A swipe that began on a button must not
-// also count as that button's tap, so the click that follows it is swallowed.
+// A sideways swipe, from the player's own point of view, opens commander damage for that player, the most-used tool;
+// a swipe on their panel again leaves it. Over the status card it closes the card instead. It is tracked on the board,
+// which outlives the re-render a counted tap causes mid-gesture. A swipe that began on a button must not also count
+// as that button's tap, so the click that follows it is swallowed.
 let swipedAt = 0;
 (() => {
   const board = $('board');
@@ -682,9 +683,13 @@ let swipedAt = 0;
     start = null;
     stopHolds();
     swipedAt = Date.now();
-    if (ui[p].sheet || G().dmgTarget != null) return;
-    ui[p].info = !ui[p].info;
-    renderTable();
+    const g = G();
+    if (ui[p].sheet || g.players[p].out) return;
+    if (ui[p].info) { ui[p].info = false; renderTable(); return; }
+    if (g.dmgTarget != null) { if (g.dmgTarget === p) { g.dmgTarget = null; commit(); } return; }
+    if (g.n < 2) return;
+    g.dmgTarget = p;
+    commit();
   });
   ['pointerup', 'pointercancel'].forEach(t => board.addEventListener(t, () => { start = null; }));
   board.addEventListener('click', e => { if (Date.now() - swipedAt < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
@@ -830,6 +835,8 @@ function renderTable() {
     hub.style.setProperty('--dmg-rot', `${rot}deg`);
   }
   $('moveSeat').classList.toggle('hidden', g.n < 2);
+  // A look whose hub sits among the players turns its buttons toward whoever's turn it is.
+  hub.style.setProperty('--hub-rot', `${cellOf(g, g.active)[1]}deg`);
   const over = alive().length <= 1 && g.n > 1;
   $('pass').classList.toggle('over', over);
   $('turnLabel').replaceChildren(...(over ? ['Finish'] : [el('span', 'l', 'Turn '), String(g.round)]));
@@ -1055,6 +1062,7 @@ $('menuBtn').onclick = () => $('menu').classList.remove('hidden');
 $('menuBtn').insertAdjacentHTML('beforeend', iconSvg('menu'));
 $('dmgDone').onclick = () => { G().dmgTarget = null; commit(); };
 $('closeMenu').onclick = () => $('menu').classList.add('hidden');
+document.querySelectorAll('#menu a').forEach(a => { a.onclick = () => $('menu').classList.add('hidden'); });
 $('finishNow').onclick = () => { $('menu').classList.add('hidden'); openFinish(); };
 $('toHome').onclick = () => { $('menu').classList.add('hidden'); renderHome(); show('home'); };
 $('resetLife').onclick = async () => {
