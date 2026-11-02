@@ -8,7 +8,7 @@ eliminations and the whole event log, clears the game from the phone, and the ho
 
 - `sg-finish-screen` opens the end screen with `Game details` showing, the turn count and the first elimination
   pre-filled from the game, and the button reading `Save game`.
-- `sg-details-required` refuses to save until the pod and power under Game details are filled.
+- `sg-details-required` refuses to save until the pod, power and date under Game details are filled.
 - `sg-queue` writes one entry to `store.queue` with `id`, `setup` (date, pod, power, bracket, deck, opps, seat),
   `winner`, `victory`, `turns`, `elim`, `notes`, `eliminations` and `events`.
 - `sg-cleared` leaves `store.game` null and shows the home screen with `Game saved`.
@@ -32,6 +32,7 @@ Preconditions:
 - **Fill.** `await app.seg('winner', 'Krenko, Mob Boss').tap(); await app.seg('victory', 'Combat Damage').tap(); await app.$('notes').fill('Turn two Krenko')`.
 - **Details required.** `await app.$('saveGame').tap()` with the pod still empty: `#finishMsg` reads `Fill in the pod and power under Game details.`, `#detailsWrap` is open and the screen is still `finish`.
 - **Details.** `await app.$('date').fill('2026-10-31'); await app.$('pod').fill('Tuesday pod'); await app.seg('power', 'Mid').tap(); await app.seg('bracket', '3').tap()`.
+- **Date required.** `await app.$('date').fill(''); await app.$('saveGame').tap()`: `#finishMsg` reads `Pick a date.` and `store.queue` is still empty. Fill the date again before saving.
 - **Save.** `await app.$('saveGame').tap()`. The home screen shows and `#toast` reads `Game saved`.
 - **Queue entry.** `const store = await app.store()`: `store.game` is null and `store.queue` has one entry whose `id` is a string, `setup.date` is `2026-10-31`, `setup.pod` is `Tuesday pod`, `setup.power` is `Mid Power`, `setup.bracket` is `3`, `setup.deck` is the first name, `setup.opps` is the other three, `setup.seat` is `1`, `winner` is `Opponent 1`, `victory` is `Combat Damage`, `turns` and `elim` are `1`, `notes` is what was typed, `eliminations` is `[{ name: 'Edgar Markov', turn: 1, cause: 'life' }]` and `events` has 46 entries.
 - **Home count.** `#syncStatus` reads `1 game saved on this phone. Add your sync URL and key in Settings to send games to your sheet.`

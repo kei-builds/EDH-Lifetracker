@@ -1217,6 +1217,7 @@ $('saveGame').onclick = () => {
       msg('finishMsg', 'Fill in the pod and power under Game details.', true);
       return;
     }
+    if (!$('date').value) { $('detailsWrap').open = true; msg('finishMsg', 'Pick a date.', true); return; }
     const w = picked.winner;
     const mySeat = turnPos(0) + 1;
     store.queue.push({

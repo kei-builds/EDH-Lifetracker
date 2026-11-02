@@ -37,6 +37,11 @@ export default async ({ page, app, evidence, assert }) => {
   await app.$('pod').fill('Tuesday pod');
   await app.seg('power', 'Mid').tap();
   await app.seg('bracket', '3').tap();
+  await app.$('date').fill('');
+  await app.$('saveGame').tap();
+  assert.equal(await app.$('finishMsg').textContent(), 'Pick a date.', 'a cleared date is refused before the game is queued');
+  assert.equal((await app.store()).queue.length, 0);
+  await app.$('date').fill(DATE);
   await evidence.shot('finish-filled');
   await evidence.aria('finish-filled');
 
