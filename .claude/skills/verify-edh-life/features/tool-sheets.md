@@ -2,13 +2,13 @@
 
 The Tax, Mana and Counters tiles open a sheet over the panel. Tax counts commander tax in steps of 2 and has a Partner
 switch; Mana counts storm for the whole table and a floating pool of six colors with Empty pool; Counters tracks poison,
-energy, experience and rad, opens the rad reminder, and holds Concede. Nonzero values show as chips or on the tiles.
+energy, experience and rad, opens the rad reminder, and holds Concede. Nonzero values show on the tiles in Companion and as chips in Minimal.
 
 ## Sub-features
 
-- `ts-tax` raises and lowers commander tax by 2 and shows a crown chip with the total.
-- `ts-storm` counts spells cast this turn, shows a storm chip, and resets to 0 when the turn passes.
-- `ts-mana` counts each color of floating mana, shows a mana chip, and Empty pool clears it.
+- `ts-tax` raises and lowers commander tax by 2 and shows the total on the Tax tile (a crown chip in Minimal), without the tile changing size.
+- `ts-storm` counts spells cast this turn and resets to 0 when the turn passes; Minimal shows a storm chip.
+- `ts-mana` counts each color of floating mana, shows the pool as pips on the Mana tile (a mana chip in Minimal), and Empty pool clears it.
 - `ts-counters` raises and lowers poison, energy, experience and rad; the Counters tile lists nonzero ones.
 - `ts-rad` opens the Radiation reminder with its rules text from the Rad name, and Close dismisses it.
 - `ts-poison-out` knocks a player out at 10 poison; Concede becomes a disabled Out.
@@ -42,7 +42,7 @@ Preconditions:
 ## Gotchas
 
 - Storm, mana, tax, Partner and Move my seat add no undo step of their own; poison and the other counters do. Undo returns the whole game to before the last step, those included, so undoing a pass brings the storm count back and undoing a life tap drops any mana tapped after it.
-- In Companion the poison and commander-damage chips are hidden (the tiles list them); assert on the Counters tile. In Minimal the chips show and open the status card.
+- In Companion no chips show (the tiles list every value, and Damage and Counters grow down their column); assert on the tiles. In Minimal the chips show and the poison and commander-damage ones open the status card.
 - The counters inside a sheet are `.ctr` in order: Tax has one (two with Partner on), Mana has six (W U B R G C), Counters has four (poison, energy, experience, rad).
 - The rad image needs Scryfall once; under the stub it is a 1x1 PNG, so do not judge the picture, only that `#radInfo` opened and closed.
 - Holding past 10 poison keeps counting; assert `>= 10`.

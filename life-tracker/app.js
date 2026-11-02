@@ -935,15 +935,15 @@ function buildFace(face, p) {
     if (cls && cls.includes('tiled')) { c.onclick = () => { ui[p].info = true; renderTable(); }; c.setAttribute('role', 'button'); }
     badges.appendChild(c);
   };
-  // "tiled" chips repeat what the Damage and Counters tiles list, so a look whose tiles always show can drop them.
+  // "tiled" chips repeat what the tiles list, so a look whose tiles always show drops them all.
   const cmdMax = Math.max(...pl.cmd.flat());
   if (cmdMax) chip('swords', 'Cmd', cmdMax, cmdMax >= 15 ? 'tiled warn' : 'tiled');
   if (pl.counters.poison) chip('biohazard', 'Poison', pl.counters.poison, pl.counters.poison >= 7 ? 'tiled warn' : 'tiled');
   const tax = pl.tax[0] + pl.tax[1];
-  if (tax) chip('crown', 'Tax', pl.partner ? pl.tax.join('/') : tax);
+  if (tax) chip('crown', 'Tax', pl.partner ? pl.tax.join('/') : tax, 'tiled');
   const manaTotal = MANA.reduce((s, c) => s + pl.mana[c], 0);
-  if (manaTotal) chip('droplets', 'Mana', manaTotal);
-  if (G().storm) chip('cloud-lightning', 'Storm', G().storm);
+  if (manaTotal) chip('droplets', 'Mana', manaTotal, 'tiled');
+  if (G().storm) chip('cloud-lightning', 'Storm', G().storm, 'tiled');
   const strip = el('div', 'strip');
   const minus = el('button', 'zone minus', '−');
   const plus = el('button', 'zone plus', '+');
@@ -993,15 +993,26 @@ function buildFace(face, p) {
   }
 }
 
-// What a tool's tile lists, like the official Companion app's tiles: Damage gets one entry per player whose commanders hit
-// this one (their initial, or seat number when unnamed, and the total; amber once one commander has dealt 15, red at a
-// lethal 21), and Counters one per nonzero counter (icon and count; poison amber at 7, red at 10). null when there's
-// nothing to list, so the tile stays as it was.
+// What a tool's tile lists, like the official Companion app's tiles: Tax its total (per commander for partners), Mana the
+// pool as pips with counts, Damage one entry per player whose commanders hit this one (their initial, or seat number
+// when unnamed, and the total; amber once one commander has dealt 15, red at a lethal 21), and Counters one per nonzero
+// counter (icon and count; poison amber at 7, red at 10). null when there's nothing to list.
 function tileValues(p, kind) {
   const g = G();
   const pl = g.players[p];
   const vals = el('span', 'vals');
-  if (kind === 'damage') {
+  if (kind === 'tax') {
+    const t = pl.tax[0] + pl.tax[1];
+    if (t) vals.appendChild(el('span', 'v', pl.partner ? `${pl.tax[0]} / ${pl.tax[1]}` : String(t)));
+  } else if (kind === 'mana') {
+    MANA.filter(c => pl.mana[c]).forEach(c => {
+      const v = el('span', 'v');
+      const pip = el('i', 'pip');
+      pip.style.background = `var(--${c})`;
+      v.append(pip, String(pl.mana[c]));
+      vals.appendChild(v);
+    });
+  } else if (kind === 'damage') {
     pl.cmd.forEach(([a, b], s) => {
       if (!a && !b) return;
       const who = el('i', null, g.named[s] ? shortName(g.players[s].name)[0].toUpperCase() : String(s + 1));

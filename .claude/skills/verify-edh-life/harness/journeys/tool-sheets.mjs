@@ -12,7 +12,11 @@ export default async ({ page, app, evidence, assert }) => {
   await evidence.shot('tax-sheet');
   await app.sheet(0).getByRole('button', { name: 'Done' }).tap();
   assert.equal(await app.sheet(0).count(), 0);
-  assert.match(await app.panel(0).locator('.badges').textContent(), /4/, 'the tax chip shows on the panel');
+  const shown = sel => app.panel(0).locator(sel).filter({ visible: true });
+  assert.equal(await shown('.a-tax .vals').textContent(), '4', 'Companion shows the tax on the Tax tile');
+  assert.equal(await shown('.badges > span').count(), 0, 'Companion shows no chips; the tiles carry the values');
+  const taxTile = await app.panel(0).locator('.a-tax').boundingBox(), manaTile = await app.panel(0).locator('.a-mana').boundingBox();
+  assert.ok(Math.abs(taxTile.height - manaTile.height) < 1 && Math.abs(taxTile.width - manaTile.width) < 1, "the Tax tile keeps the empty Mana tile's size while it shows a number");
   evidence.note('tax 4');
 
   await app.openTool(0, 'mana');
@@ -25,10 +29,14 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal(g.storm, 2);
   assert.equal(g.players[0].mana.W, 1);
   await evidence.shot('mana-sheet');
+  await app.sheet(0).getByRole('button', { name: 'Done' }).tap();
+  assert.equal(await shown('.a-mana .vals .v').count(), 1, 'the Mana tile shows the one floating color');
+  assert.equal(await shown('.a-mana .vals .v').textContent(), '1', 'with its count');
+  await app.openTool(0, 'mana');
   await app.sheet(0).getByRole('button', { name: 'Empty pool' }).tap();
   assert.equal((await app.game()).players[0].mana.W, 0);
   await app.sheet(0).getByRole('button', { name: 'Done' }).tap();
-  assert.match(await app.panel(0).locator('.badges').textContent(), /2/, 'the storm chip shows on the panel');
+  assert.equal(await shown('.a-mana .vals').count(), 0, 'an empty pool leaves the Mana tile bare');
   await app.$('pass').tap();
   g = await app.game();
   assert.equal(g.storm, 0, 'passing the turn resets storm');

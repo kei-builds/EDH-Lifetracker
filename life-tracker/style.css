@@ -304,7 +304,7 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 [data-theme="companion"] .board { left: 0; right: 0; top: env(safe-area-inset-top); bottom: calc(52px + env(safe-area-inset-bottom)); }
 [data-theme="companion"] .panel.active::after { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .9),
   inset 0 0 14px 2px rgba(190, 200, 255, .55), inset 0 0 40px rgba(150, 160, 255, .25); }
-[data-theme="companion"] .face { --tw: clamp(48px, 19.5cqw, 80px); --nh: clamp(34px, 21cqh, 44px); --pocket: 62%; }
+[data-theme="companion"] .face { --tw: clamp(48px, 19.5cqw, 80px); --nh: clamp(38px, 21cqh, 48px); --pocket: 62%; }
 [data-theme="companion"] .lay { inset: 4px; display: grid; grid-template-columns: var(--tw) 1fr var(--tw);
   grid-template-rows: var(--nh) 1fr; gap: 4px; }
 /* The name is one small line along the bottom of the life box, so the art's upper band, where faces sit, stays clear. */
@@ -336,13 +336,18 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 [data-theme="companion"] .a-damage { grid-area: 2 / 1; }
 [data-theme="companion"] .a-mana { grid-area: 1 / 3; }
 [data-theme="companion"] .a-counters { grid-area: 2 / 3; }
-[data-theme="companion"] .a-damage, [data-theme="companion"] .a-counters { align-self: start; height: calc(var(--nh) * 1.18); }
+/* Tax and Mana keep their size whatever they show; Damage and Counters take the rest of their column, since they grow rows. */
+[data-theme="companion"] .actions .a-damage, [data-theme="companion"] .actions .a-counters { align-self: stretch; height: auto; justify-content: flex-start; padding-top: 8px; }
+[data-theme="companion"] .a-tax .vals, [data-theme="companion"] .a-mana .vals { flex-wrap: nowrap; gap: 4px; }
+[data-theme="companion"] .a-tax .v, [data-theme="companion"] .a-mana .v { font-size: 15px; }
+[data-theme="companion"] .vals .pip { width: 11px; height: 11px; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); }
 [data-theme="companion"] .actions svg { width: 19px; height: 19px; stroke-width: 1.6; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
 /* A tile with values lists them in place of its icon, as the official app does, and grows to fit as far as its row allows.
    Each damage entry is the hitter's initial on a square of their colors, then the total. */
-[data-theme="companion"] .actions button:has(> .vals) { height: auto; min-height: calc(var(--nh) * 1.18); max-height: 100%; padding: 5px 2px; gap: 4px; }
 [data-theme="companion"] .actions button:has(> .vals) > svg { display: none; }
 [data-theme="companion"] .actions .vals { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px 7px; max-width: 100%; }
+[data-theme="companion"] .actions .a-damage:has(> .vals), [data-theme="companion"] .actions .a-counters:has(> .vals) { gap: 6px; }
+[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals { flex-direction: column; flex-wrap: nowrap; gap: 5px; min-height: 0; overflow: hidden; }
 [data-theme="companion"] .vals .v { display: inline-flex; align-items: center; gap: 3px; font-family: var(--num); font-size: 14px;
   letter-spacing: 0; font-variant-numeric: tabular-nums; }
 [data-theme="companion"] .vals i { width: 13px; height: 13px; flex: none; border-radius: 3px; font: normal 700 9px/13px var(--cond);
