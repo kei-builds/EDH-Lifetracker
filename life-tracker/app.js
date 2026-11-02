@@ -585,7 +585,8 @@ const alive = () => G().players.map((p, i) => i).filter(i => !G().players[i].out
 const UNDO_MAX = 80;
 // Taps on the same control within the delta float's window are one undo step, so Undo takes back what the float
 // showed. A held button's repeats share its key and arrive 110 ms apart, so a hold is one step too, and so is a tap
-// right after it. Anything without a key is always its own step.
+// right after it. Anything without a key is always its own step. A change made with no snapshot at all (storm, mana,
+// the seat) is no step of its own: undo restores the whole game, so the next Undo takes it back too.
 const BURST = 1500;
 let lastSnap = { key: null, at: 0 };
 function snapshot(key) {
@@ -764,7 +765,6 @@ let swipedAt = 0;
   board.addEventListener('click', e => { if (Date.now() - swipedAt < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
 })();
 
-// The status card a swipe flips a panel to: commander damage from every opponent, then the player's nonzero counters.
 function infoCard(p) {
   const g = G();
   const pl = g.players[p];
@@ -1039,7 +1039,7 @@ function sheet(p, kind) {
     btns.appendChild(t);
   } else if (kind === 'mana') {
     // Storm counts spells cast this turn by everyone, so it is one number for the game; games saved before it existed
-    // have none. Like the mana pool it stays out of the undo history.
+    // have none.
     const storm = el('button', 'storm');
     storm.append(el('span', 'l', 'Storm'), el('b', null, G().storm || 0));
     storm.onclick = () => { G().storm = (G().storm || 0) + 1; commit(); };
@@ -1151,7 +1151,7 @@ $('resetLife').onclick = async () => {
   $('menu').classList.add('hidden');
   commit();
 };
-// Steps your panel one cell clockwise, for a seat noticed after the game started. Not an undo step, like the look.
+// Steps your panel one cell clockwise, for a seat noticed after the game started.
 $('moveSeat').onclick = () => {
   const g = G();
   g.seat = ((g.seat || 0) + 1) % g.n;

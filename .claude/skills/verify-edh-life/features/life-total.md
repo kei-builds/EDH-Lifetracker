@@ -9,7 +9,7 @@ knocked out at 0.
 - `life-tap` changes life by one per tap on either half.
 - `life-delta` floats the running total (`+3`, `-3`) beside the numeral for about 1.5 s.
 - `life-hold` keeps counting while a half is held.
-- `life-undo-burst` treats taps on one control within 1.5 s of each other, or one hold and any tap within 1.5 s of its release, as a single undo step.
+- `life-undo-burst` treats taps on one control within 1.5 s of each other, or one hold and any tap within 1.5 s of its last count, as a single undo step.
 - `life-colors` tints the numeral amber at 10 or below and red at 5 or below.
 - `life-out` marks the player Out at 0 with the turn and cause, and offers Finish when one player is left.
 
