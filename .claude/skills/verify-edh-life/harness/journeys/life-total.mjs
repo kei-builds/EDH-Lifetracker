@@ -24,6 +24,18 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal(await app.life(0), 40, 'the hold is one undo step');
   evidence.note('hold counted and undid as one step', { held });
 
+  const steps = (await app.store()).undo.length;
+  await app.tapLife(1, -1, 2);
+  await page.waitForTimeout(1700);
+  await app.tapLife(1, -1, 2);
+  assert.equal(await app.life(1), 36);
+  assert.equal((await app.store()).undo.length, steps + 2, 'a pause longer than the burst window starts a new step');
+  await app.$('undo').tap();
+  assert.equal(await app.life(1), 38, 'one Undo takes back only the taps after the pause');
+  await app.$('undo').tap();
+  assert.equal(await app.life(1), 40);
+  evidence.note('a pause split the taps into two steps');
+
   await app.tapLife(1, -1, 30);
   assert.equal(await app.life(1), 10);
   assert.equal(await app.panel(1).locator('.num.warn').count(), 1, 'amber at 10');

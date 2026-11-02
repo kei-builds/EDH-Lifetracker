@@ -50,6 +50,9 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal(g.active, 2);
   assert.deepEqual(g.players.map(p => p.name), ['You', 'Player 2', 'Player 3'], 'blank seats get placeholder names');
   assert.ok(!(await app.panel(0).evaluate(e => e.classList.contains('tools'))), 'Minimal hides the tiles');
+  const prefs = (await app.store()).prefs;
+  assert.equal(prefs.life, '20', 'the second game\'s life is the remembered preference');
+  assert.equal(prefs.players, '3');
   await evidence.shot('table-minimal');
   await app.panel(0).locator('.head').tap();
   assert.ok(await app.panel(0).evaluate(e => e.classList.contains('tools')), 'a tap on the name shows the tiles');

@@ -28,6 +28,7 @@ Preconditions:
 - **Three taps.** Tap the opponent's minus half three times. `await app.tapLife(1, -1, 3)`. `await app.life(1)` is 37 and `await app.delta(1)` is `-3`. `await app.game()` has `players[1].life` 37 and three events with a `life` field; `(await app.store()).undo.length` is 1.
 - **Undo the burst.** Tap Undo. `await app.$('undo').tap()`. Life is back to 40 and the undo stack is empty.
 - **Hold.** Hold the user's plus half. `await app.hold(app.lifeButton(0, 1), 900)`. Life is between 42 and 47. One `Undo` returns it to 40.
+- **A pause splits.** `await app.tapLife(1, -1, 2); await page.waitForTimeout(1700); await app.tapLife(1, -1, 2)`. Life is 36 and the undo stack grew by 2. One `Undo` gives 38, a second 40.
 - **Low life.** Tap the opponent down. `await app.tapLife(1, -1, 30)` gives 10 and `app.panel(1).locator('.num.warn')` exists; five more give 5 and `.num.lethal` exists.
 - **Knockout.** Five more taps reach 0. `app.panel(1).locator('.out')` reads `Out` and `turn 1 · life`; `game.players[1].out.cause` is `life`; `#turnLabel` reads `Finish`.
 - **Undo the knockout.** `await app.$('undo').tap()`. Life is 40, no `.out`, `players[1].out` is null, because the whole unbroken run of taps was one step.

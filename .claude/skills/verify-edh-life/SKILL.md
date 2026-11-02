@@ -77,6 +77,7 @@ Exit code 1 if any journey failed. The journeys are the recipes in `features/`, 
 | `commander-damage` | `features/commander-damage.md` | Damage tile and swipe open damage mode; damage lowers life; 21 knocks out |
 | `tool-sheets` | `features/tool-sheets.md` | Tax, mana and storm, counters, the rad reminder, poison knockout, Concede |
 | `turns-and-finish` | `features/turns-and-finish.md` | Turn passing and rounds, the options menu, leave and resume, ending a game |
+| `save-game` | `features/save-game.md` | A fully named 4-player game through Finish game to one entry in the sync queue |
 
 A journey is a file in `harness/journeys/<name>.mjs` exporting one async function. Copy an existing one. It receives:
 

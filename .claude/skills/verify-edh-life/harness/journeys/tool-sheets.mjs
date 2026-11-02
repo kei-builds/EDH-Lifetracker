@@ -33,7 +33,15 @@ export default async ({ page, app, evidence, assert }) => {
   g = await app.game();
   assert.equal(g.storm, 0, 'passing the turn resets storm');
   assert.equal(g.active, 1);
-  evidence.note('storm counted and reset on turn pass');
+  await app.$('undo').tap();
+  g = await app.game();
+  assert.equal(g.storm, 2, 'undoing the pass brings the storm count back with the rest of the game');
+  assert.equal(g.active, 0);
+  await app.$('pass').tap();
+  g = await app.game();
+  assert.equal(g.storm, 0);
+  assert.equal(g.active, 1);
+  evidence.note('storm counted, reset on turn pass, and restored by undoing the pass');
 
   await app.openTool(1, 'counters');
   assert.equal(await app.sheet(1).locator('h3').textContent(), 'Counters');

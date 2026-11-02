@@ -31,6 +31,7 @@ Preconditions:
 - **Tax.** `await app.openTool(0, 'tax')`; the sheet's `h3` reads `Commander tax`. Tap `plusIn(app.sheet(0))` twice: the counter reads `4` and `game.players[0].tax` is `[4, 0]`. `Done` closes the sheet and `app.panel(0).locator('.badges')` contains `4`.
 - **Storm and mana.** `await app.openTool(0, 'mana')`. Tap `app.sheet(0).locator('.storm')` twice: its `b` reads `2` and `game.storm` is 2. Tap `plusIn(app.sheet(0), 0)`: `players[0].mana.W` is 1. `Empty pool` sets it to 0. After `Done` the badges contain `2`.
 - **Storm resets.** `await app.$('pass').tap()`: `game.storm` is 0 and `game.active` is 1.
+- **Undo the pass.** `await app.$('undo').tap()`: `game.storm` is 2 again and `game.active` is 0. Pass again before going on.
 - **Counters.** `await app.openTool(1, 'counters')`; `h3` reads `Counters`. Tap `plusIn(app.sheet(1), 0)` three times and `plusIn(app.sheet(1), 1)` once: `players[1].counters` has poison 3 and energy 1.
 - **Rad reminder.** Tap `app.sheet(1).getByRole('button', { name: 'What rad counters do' })`. `#radInfo` is visible and `#radText` mentions rad counters. `await app.$('radClose').tap()` hides it.
 - **Tile.** After `Done`, `app.panel(1).locator('.a-counters')` contains `3` and `1`.
@@ -40,7 +41,7 @@ Preconditions:
 
 ## Gotchas
 
-- Tax, mana and storm are not undo steps; poison and other counters are. Do not expect Undo to clear a mana change.
+- Storm, mana, tax, Partner and Move my seat add no undo step of their own; poison and the other counters do. Undo returns the whole game to before the last step, those included, so undoing a pass brings the storm count back and undoing a life tap drops any mana tapped after it.
 - In Companion the poison and commander-damage chips are hidden (the tiles list them); assert on the Counters tile. In Minimal the chips show and open the status card.
 - The counters inside a sheet are `.ctr` in order: Tax has one (two with Partner on), Mana has six (W U B R G C), Counters has four (poison, energy, experience, rad).
 - The rad image needs Scryfall once; under the stub it is a 1x1 PNG, so do not judge the picture, only that `#radInfo` opened and closed.
