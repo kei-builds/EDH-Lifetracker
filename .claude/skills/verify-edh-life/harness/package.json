@@ -1,0 +1,9 @@
+{
+  "name": "verify-edh-life-harness",
+  "private": true,
+  "type": "module",
+  "description": "Drives EDH Life in the installed Chrome for verification runs. Not part of the app.",
+  "dependencies": {
+    "playwright-core": "^1.64.0"
+  }
+}

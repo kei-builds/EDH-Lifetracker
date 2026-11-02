@@ -1,0 +1,77 @@
+// Tool sheets: Tax, Mana (with storm) and Counters (with the rad reminder and Concede), and the chips and tiles they feed.
+export default async ({ page, app, evidence, assert }) => {
+  await app.newGame({ players: 2, names: ["Atraxa, Praetors' Voice", 'Krenko, Mob Boss'] });
+  const plusIn = (scope, n = 0) => scope.locator('.ctr').nth(n).getByRole('button', { name: '+', exact: true });
+
+  await app.openTool(0, 'tax');
+  assert.equal(await app.sheet(0).locator('h3').textContent(), 'Commander tax');
+  await plusIn(app.sheet(0)).tap();
+  await plusIn(app.sheet(0)).tap();
+  assert.equal(await app.sheet(0).locator('.ctr b').textContent(), '4', 'tax climbs in steps of 2');
+  assert.deepEqual((await app.game()).players[0].tax, [4, 0]);
+  await evidence.shot('tax-sheet');
+  await app.sheet(0).getByRole('button', { name: 'Done' }).tap();
+  assert.equal(await app.sheet(0).count(), 0);
+  assert.match(await app.panel(0).locator('.badges').textContent(), /4/, 'the tax chip shows on the panel');
+  evidence.note('tax 4');
+
+  await app.openTool(0, 'mana');
+  const storm = app.sheet(0).locator('.storm');
+  await storm.tap();
+  await storm.tap();
+  assert.equal(await storm.locator('b').textContent(), '2');
+  await plusIn(app.sheet(0), 0).tap();
+  let g = await app.game();
+  assert.equal(g.storm, 2);
+  assert.equal(g.players[0].mana.W, 1);
+  await evidence.shot('mana-sheet');
+  await app.sheet(0).getByRole('button', { name: 'Empty pool' }).tap();
+  assert.equal((await app.game()).players[0].mana.W, 0);
+  await app.sheet(0).getByRole('button', { name: 'Done' }).tap();
+  assert.match(await app.panel(0).locator('.badges').textContent(), /2/, 'the storm chip shows on the panel');
+  await app.$('pass').tap();
+  g = await app.game();
+  assert.equal(g.storm, 0, 'passing the turn resets storm');
+  assert.equal(g.active, 1);
+  evidence.note('storm counted and reset on turn pass');
+
+  await app.openTool(1, 'counters');
+  assert.equal(await app.sheet(1).locator('h3').textContent(), 'Counters');
+  for (let i = 0; i < 3; i++) await plusIn(app.sheet(1), 0).tap();
+  await plusIn(app.sheet(1), 1).tap();
+  g = await app.game();
+  assert.equal(g.players[1].counters.poison, 3);
+  assert.equal(g.players[1].counters.energy, 1);
+  await evidence.shot('counters-sheet');
+  await app.sheet(1).getByRole('button', { name: 'What rad counters do' }).tap();
+  await app.$('radInfo').waitFor({ state: 'visible' });
+  assert.match(await app.$('radText').textContent(), /rad counters/);
+  await evidence.shot('rad-reminder');
+  await app.$('radClose').tap();
+  await app.$('radInfo').waitFor({ state: 'hidden' });
+  await app.sheet(1).getByRole('button', { name: 'Done' }).tap();
+  const tile = await app.panel(1).locator('.a-counters').textContent();
+  assert.match(tile, /3/, 'the Counters tile lists poison');
+  assert.match(tile, /1/, 'and energy');
+  await evidence.shot('counters-tile');
+  evidence.note('poison 3, energy 1, rad reminder opened and closed');
+
+  await app.openTool(1, 'counters');
+  await app.hold(plusIn(app.sheet(1), 0), 1400);
+  g = await app.game();
+  assert.ok(g.players[1].counters.poison >= 10, `a hold reaches ten poison (got ${g.players[1].counters.poison})`);
+  assert.equal(g.players[1].out.cause, 'poison');
+  assert.equal(await app.sheet(1).getByRole('button', { name: 'Out' }).isDisabled(), true, 'Concede becomes a disabled Out');
+  await app.sheet(1).getByRole('button', { name: 'Done' }).tap();
+  assert.match(await app.panel(1).locator('.out').textContent(), /poison/);
+  await evidence.shot('poisoned-out');
+
+  await app.openTool(0, 'counters');
+  await app.sheet(0).getByRole('button', { name: 'Concede' }).tap();
+  g = await app.game();
+  assert.equal(g.players[0].out.cause, 'concede');
+  assert.match(await app.panel(0).locator('.out').textContent(), /conceded/);
+  await evidence.shot('conceded');
+  await evidence.storeDump('both-out');
+  evidence.note('poison knockout and concession recorded', { outs: g.players.map(p => p.out && p.out.cause) });
+};

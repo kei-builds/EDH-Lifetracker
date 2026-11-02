@@ -1,5 +1,8 @@
 # Claude Code session settings and local launch config
-.claude/
+.claude/*
+!.claude/skills/
+.claude/skills/verify-edh-life/evidence/
+.claude/skills/verify-edh-life/harness/.run/
 
 # Screenshot strips and photos used during the redesign (38 MB); not needed to run the app
 prototypes/
