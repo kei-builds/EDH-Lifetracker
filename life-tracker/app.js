@@ -312,15 +312,71 @@ async function cardArt(name) {
   return null;
 }
 
-// Fills in art for named players in the background, so starting a game never waits on it.
+// Where the art's subject is, as background-position percentages: sideways, the middle of the most detailed region
+// (edge energy with a bias toward the center, so frames and signatures count less); up and down, a point just below
+// that region's top, since a subject's face sits at its top. Measured once per image on a 96 px copy. null when the
+// image can't be read, which keeps the default crop.
+async function artAnchor(url) {
+  try {
+    // Art cached before anchors existed was stored opaque, which a readable request rejects outright; a fresh copy
+    // under a new query is readable.
+    let res = await fetch(url, { mode: 'cors' }).catch(() => null);
+    if (!res || !res.ok) res = await fetch(url + (url.includes('?') ? '&' : '?') + 'cors=1', { mode: 'cors' });
+    if (!res.ok) return null;
+    const bmp = await createImageBitmap(await res.blob());
+    const W = 96, H = Math.max(8, Math.round(W * bmp.height / bmp.width));
+    const cv = document.createElement('canvas');
+    cv.width = W;
+    cv.height = H;
+    const cx = cv.getContext('2d');
+    cx.drawImage(bmp, 0, 0, W, H);
+    const d = cx.getImageData(0, 0, W, H).data;
+    const lum = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) lum[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+    const e = new Float32Array(W * H);
+    for (let y = 1; y < H - 1; y++) {
+      for (let x = 1; x < W - 1; x++) {
+        const i = y * W + x;
+        const gx = -lum[i - W - 1] - 2 * lum[i - 1] - lum[i + W - 1] + lum[i - W + 1] + 2 * lum[i + 1] + lum[i + W + 1];
+        const gy = -lum[i - W - 1] - 2 * lum[i - W] - lum[i - W + 1] + lum[i + W - 1] + 2 * lum[i + W] + lum[i + W + 1];
+        e[i] = Math.hypot(gx, gy) * (1 - 0.35 * Math.min(1, Math.hypot((x / W - 0.5) * 2, (y / H - 0.5) * 2)));
+      }
+    }
+    // The window is what a tall panel shows of the art: about half its width and 70% of its height.
+    const ww = Math.round(W * 0.5), wh = Math.round(H * 0.7);
+    let best = { s: -1, x: 0, y: 0 };
+    for (let y = 0; y + wh <= H; y++) {
+      for (let x = 0; x + ww <= W; x++) {
+        let s = 0;
+        for (let yy = y; yy < y + wh; yy += 2) for (let xx = x; xx < x + ww; xx += 2) s += e[yy * W + xx];
+        if (s > best.s) best = { s, x, y };
+      }
+    }
+    let sx = 0, sy = 0, st = 0;
+    for (let y = best.y; y < best.y + wh; y++) for (let x = best.x; x < best.x + ww; x++) { const v = e[y * W + x]; sx += x * v; sy += y * v; st += v; }
+    if (!st) return null;
+    const fx = sx / st / W, fy = Math.min(sy / st / H, (best.y + wh * 0.18) / H);
+    return [Math.round(fx * 100), Math.round(fy * 100)];
+  } catch (err) {
+    return null;
+  }
+}
+
+// Fills in art for named players in the background, so starting a game never waits on it, and measures where each
+// image's subject is so the panel crops to it. Games saved before anchors existed get theirs here too.
 async function loadArt() {
   const g = G();
   if (!g || !navigator.onLine || store.prefs.art === false) return;
   const id = g.id;
-  for (const i of g.players.map((pl, n) => n).filter(n => g.named[n] && !g.players[n].art)) {
-    const art = await cardArt(g.players[i].name);
+  for (const i of g.players.map((pl, n) => n).filter(n => g.named[n] && !(g.players[n].art && g.players[n].anchor))) {
+    const art = G().players[i].art || await cardArt(G().players[i].name);
     if (!G() || G().id !== id) return;
-    if (art) { G().players[i].art = art; commit(); }
+    if (!art) continue;
+    const anchor = [];
+    for (const u of art) anchor.push(await artAnchor(u));
+    if (!G() || G().id !== id) return;
+    Object.assign(G().players[i], { art, anchor });
+    commit();
   }
 }
 window.addEventListener('online', () => loadArt());
@@ -540,7 +596,7 @@ function snapshot(key) {
   const g = G();
   store.undo.push(JSON.stringify(Object.assign({}, g, {
     events: g.events.length,
-    players: g.players.map(pl => Object.assign({}, pl, { art: undefined })),
+    players: g.players.map(pl => Object.assign({}, pl, { art: undefined, anchor: undefined })),
   })));
   if (store.undo.length > UNDO_MAX) store.undo.shift();
 }
@@ -550,7 +606,7 @@ function undo() {
   const prev = JSON.parse(store.undo.pop());
   lastSnap = { key: null, at: 0 };
   prev.events = g.events.slice(0, prev.events);
-  prev.players.forEach((pl, i) => { pl.art = g.players[i] && g.players[i].art; });
+  prev.players.forEach((pl, i) => { pl.art = g.players[i] && g.players[i].art; pl.anchor = g.players[i] && g.players[i].anchor; });
   store.game = prev;
   return true;
 }
@@ -739,7 +795,13 @@ function backdrop(pl) {
   t.style.background = tint(pl.letters);
   if (store.prefs.art !== false && pl.art) {
     t.classList.add('art');
-    pl.art.forEach(u => { const a = el('div'); a.style.backgroundImage = `url("${u}")`; t.appendChild(a); });
+    pl.art.forEach((u, k) => {
+      const a = el('div');
+      a.style.backgroundImage = `url("${u}")`;
+      const at = pl.anchor && pl.anchor[k];
+      if (at) a.style.backgroundPosition = `${at[0]}% ${at[1]}%`;
+      t.appendChild(a);
+    });
   }
   return t;
 }
@@ -1069,7 +1131,7 @@ $('resetLife').onclick = async () => {
   $('menu').classList.add('hidden');
   if (!await ask('Restart with the same players? This game won\'t be saved.', 'Restart')) { $('menu').classList.remove('hidden'); return; }
   const g = G();
-  g.players = g.players.map(pl => Object.assign(newPlayer(pl.name, pl.letters, g.life0, g.n), { partner: pl.partner, art: pl.art }));
+  g.players = g.players.map(pl => Object.assign(newPlayer(pl.name, pl.letters, g.life0, g.n), { partner: pl.partner, art: pl.art, anchor: pl.anchor }));
   Object.assign(g, { id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()), active: g.first, round: 1,
     started: Date.now(), events: [], storm: 0, dmgTarget: null });
   store.undo = [];
