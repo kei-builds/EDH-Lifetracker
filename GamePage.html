@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root { --bg:#f6f5f2; --card:#fff; --text:#1f1e1c; --muted:#6b6a66; --line:#d9d7d0; --accent:#2b5fd9; --on-accent:#fff; --err:#b3261e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161615; --card:#222220; --text:#eceae5; --muted:#a3a19b; --line:#3a3936; --accent:#7aa2ff; --on-accent:#0b1530; --err:#ff8a80; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.4 -apple-system, system-ui, sans-serif; }
+  .tabs { display:flex; position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--line); z-index:2; }
+  .tabs button { flex:1; padding:14px 8px; border:0; background:none; color:var(--muted); font:inherit; font-weight:600; border-bottom:3px solid transparent; }
+  .tabs button.on { color:var(--text); border-bottom-color:var(--accent); }
+  main { padding:16px; max-width:520px; margin:0 auto; }
+  label { display:block; font-size:13px; color:var(--muted); margin:18px 0 6px; font-weight:600; }
+  label small { font-weight:400; }
+  input, select, textarea { width:100%; font:inherit; font-size:16px; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--text); }
+  textarea { min-height:80px; resize:vertical; }
+  .seg { display:flex; flex-wrap:wrap; gap:8px; }
+  .seg button { flex:1 1 auto; min-width:52px; min-height:48px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--text); font:inherit; }
+  .seg.stack button { flex:1 1 100%; text-align:left; }
+  .seg button.on { background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600; }
+  .row { display:flex; gap:12px; } .row > div { flex:1; }
+  .primary { width:100%; margin-top:24px; min-height:54px; border:0; border-radius:12px; background:var(--accent); color:var(--on-accent); font:inherit; font-weight:700; }
+  .link { display:block; margin:20px auto 0; border:0; background:none; color:var(--err); font:inherit; font-size:14px; }
+  .err { color:var(--err); font-size:14px; margin-top:12px; min-height:1em; }
+  .game { padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--card); font-size:14px; }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--text); color:var(--bg); padding:10px 16px; border-radius:20px; font-size:14px; opacity:0; transition:opacity .2s; }
+  .toast.show { opacity:1; }
+  .hidden { display:none; }
+  .muted { color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button id="tabSetup" class="on">New game</button>
+  <button id="tabResult">Finish game</button>
+</div>
+
+<main id="setup">
+  <div class="row">
+    <div><label>Date</label><input id="date" type="date"></div>
+    <div><label>Pod</label><input id="pod" list="podList" autocomplete="off"></div>
+  </div>
+  <label>Power</label><div class="seg" id="power"></div>
+  <label>Bracket</label><div class="seg" id="bracket"></div>
+  <label>My deck</label><input id="deck" list="deckList" autocomplete="off" placeholder="Start typing">
+  <label>Opponent 1 <small>· to my left</small></label><input id="o1" list="cmdList" autocomplete="off">
+  <label>Opponent 2 <small>· their left</small></label><input id="o2" list="cmdList" autocomplete="off">
+  <label>Opponent 3</label><input id="o3" list="cmdList" autocomplete="off">
+  <label>My turn order</label><div class="seg" id="seat"></div>
+  <button class="primary" id="saveSetup">Start game</button>
+  <div class="err" id="setupErr"></div>
+</main>
+
+<main id="result" class="hidden">
+  <div id="noOpen" class="muted hidden">No unfinished games. Start one on the New game tab.</div>
+  <div id="resultForm">
+    <div id="pickWrap" class="hidden"><label>Game</label><select id="pick"></select></div>
+    <div class="game" id="gameInfo"></div>
+    <label>Who won?</label><div class="seg stack" id="winner"></div>
+    <label>How</label><div class="seg" id="victory"></div>
+    <div class="row">
+      <div><label>Turns</label><input id="turns" type="number" inputmode="numeric" min="1"></div>
+      <div><label>1st elimination</label><input id="elim" type="number" inputmode="numeric" min="1"></div>
+    </div>
+    <label>Turn-1 Sol Rings</label><div class="seg" id="sol"></div>
+    <div id="solWinWrap" class="hidden"><label>Did a Sol Ring player win?</label><div class="seg" id="solWin"></div></div>
+    <label>Notes</label><textarea id="notes"></textarea>
+    <button class="primary" id="saveResult">Save result</button>
+    <div class="err" id="resultErr"></div>
+    <button class="link" id="discard">Discard this game</button>
+  </div>
+</main>
+
+<datalist id="podList"></datalist>
+<datalist id="deckList"></datalist>
+<datalist id="cmdList"></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let data = null;
+const picked = {};
+
+function seg(id, options, value, onPick) {
+  const el = $(id);
+  el.innerHTML = '';
+  picked[id] = value ?? '';
+  options.forEach(o => {
+    const opt = typeof o === 'object' ? o : { value: String(o), label: String(o) };
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = opt.label;
+    if (opt.value === picked[id]) b.classList.add('on');
+    b.onclick = () => {
+      picked[id] = opt.value;
+      [...el.children].forEach(c => c.classList.toggle('on', c === b));
+      if (onPick) onPick(opt.value);
+    };
+    el.appendChild(b);
+  });
+}
+
+function fillList(id, items) {
+  $(id).innerHTML = items.map(v => `<option value="${String(v).replace(/"/g, '&quot;')}">`).join('');
+}
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function show(which) {
+  $('setup').classList.toggle('hidden', which !== 'setup');
+  $('result').classList.toggle('hidden', which !== 'result');
+  $('tabSetup').classList.toggle('on', which === 'setup');
+  $('tabResult').classList.toggle('on', which === 'result');
+}
+
+function load(then) {
+  google.script.run.withSuccessHandler(d => {
+    data = d;
+    fillList('podList', d.pods);
+    fillList('deckList', d.decks);
+    fillList('cmdList', d.commanders);
+    $('tabResult').textContent = d.open.length ? `Finish game (${d.open.length})` : 'Finish game';
+    if (then) then();
+  }).withFailureHandler(e => { $('setupErr').textContent = e.message; }).getFormData();
+}
+
+function resetSetup() {
+  $('date').value = data.today;
+  $('pod').value = data.last.pod || '';
+  ['deck', 'o1', 'o2', 'o3'].forEach(id => { $(id).value = ''; });
+  seg('power', [{ value: 'Low Power', label: 'Low' }, { value: 'Mid Power', label: 'Mid' }, { value: 'High Power', label: 'High' }], data.last.power);
+  seg('bracket', ['1', '2', '3', '4', '5'], data.last.bracket);
+  seg('seat', [{ value: '1', label: '1st' }, { value: '2', label: '2nd' }, { value: '3', label: '3rd' }, { value: '4', label: '4th' }], '');
+  $('setupErr').textContent = '';
+}
+
+function currentGame() {
+  return data.open.find(g => String(g.row) === $('pick').value) || data.open[0];
+}
+
+function resetResult() {
+  const open = data.open;
+  $('noOpen').classList.toggle('hidden', open.length > 0);
+  $('resultForm').classList.toggle('hidden', open.length === 0);
+  if (!open.length) return;
+  $('pickWrap').classList.toggle('hidden', open.length < 2);
+  $('pick').innerHTML = open.map(g => `<option value="${g.row}">${g.date} · ${g.deck}</option>`).join('');
+  renderGame();
+}
+
+function renderGame() {
+  const g = currentGame();
+  $('gameInfo').innerHTML = `<b>${g.deck}</b><br><span class="muted">vs ${g.opps.join(' · ')}</span>`;
+  seg('winner', [{ value: 'Me', label: `Me · ${g.deck}` }]
+    .concat(g.opps.map((o, i) => ({ value: `Opponent ${i + 1}`, label: o })))
+    .concat([{ value: 'Unknown opponent', label: 'Not sure which opponent' }]), '');
+  seg('victory', data.victories, '');
+  seg('sol', ['0', '1', '2', '3'], '0', v => $('solWinWrap').classList.toggle('hidden', v === '0'));
+  seg('solWin', ['Yes', 'No'], '');
+  $('solWinWrap').classList.add('hidden');
+  ['turns', 'elim', 'notes'].forEach(id => { $(id).value = ''; });
+  $('resultErr').textContent = '';
+}
+
+$('tabSetup').onclick = () => show('setup');
+$('tabResult').onclick = () => { resetResult(); show('result'); };
+$('pick').onchange = renderGame;
+
+$('saveSetup').onclick = () => {
+  const f = {
+    date: $('date').value, pod: $('pod').value.trim(), power: picked.power, bracket: picked.bracket,
+    deck: $('deck').value.trim(), opps: ['o1', 'o2', 'o3'].map(id => $(id).value.trim()), seat: picked.seat,
+  };
+  const missing = !f.date || !f.pod || !f.power || !f.deck || f.opps.some(o => !o) || !f.seat;
+  if (missing) { $('setupErr').textContent = 'Fill in every field before starting.'; return; }
+  $('saveSetup').disabled = true;
+  $('saveSetup').textContent = 'Saving…';
+  google.script.run.withSuccessHandler(() => {
+    $('saveSetup').disabled = false;
+    $('saveSetup').textContent = 'Start game';
+    toast('Game started');
+    load(() => { resetSetup(); resetResult(); show('result'); });
+  }).withFailureHandler(e => {
+    $('saveSetup').disabled = false;
+    $('saveSetup').textContent = 'Start game';
+    $('setupErr').textContent = e.message;
+  }).saveSetup(f);
+};
+
+$('saveResult').onclick = () => {
+  const g = currentGame();
+  const f = {
+    row: g.row, winner: picked.winner, victory: picked.victory, turns: $('turns').value, elim: $('elim').value,
+    sol: picked.sol, solWin: picked.solWin, notes: $('notes').value,
+  };
+  if (!f.winner) { $('resultErr').textContent = 'Pick who won.'; return; }
+  $('saveResult').disabled = true;
+  $('saveResult').textContent = 'Saving…';
+  google.script.run.withSuccessHandler(() => {
+    $('saveResult').disabled = false;
+    $('saveResult').textContent = 'Save result';
+    toast('Result saved');
+    load(() => { resetResult(); resetSetup(); show('setup'); });
+  }).withFailureHandler(e => {
+    $('saveResult').disabled = false;
+    $('saveResult').textContent = 'Save result';
+    $('resultErr').textContent = e.message;
+  }).saveResult(f);
+};
+
+$('discard').onclick = () => {
+  const g = currentGame();
+  if (!confirm(`Discard the unfinished ${g.deck} game?`)) return;
+  google.script.run.withSuccessHandler(() => {
+    toast('Game discarded');
+    load(resetResult);
+  }).withFailureHandler(e => { $('resultErr').textContent = e.message; }).discardGame(g.row);
+};
+
+load(() => {
+  resetSetup();
+  if (data.open.length) { resetResult(); show('result'); }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>EDH Life</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="home" class="screen page">
+  <h1>EDH Life</h1>
+  <button class="primary" id="newGame">New game</button>
+  <button class="secondary hidden" id="resumeGame">Resume game</button>
+  <div class="card" id="syncCard">
+    <div id="syncStatus" class="muted"></div>
+    <button class="secondary small" id="syncNow">Sync now</button>
+  </div>
+  <button class="link" id="openSettings">Settings</button>
+</section>
+
+<section id="settings" class="screen page hidden">
+  <h2>Settings</h2>
+  <label>Sync URL</label>
+  <input id="setUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+  <label>Sync key</label>
+  <input id="setKey" autocomplete="off">
+  <button class="primary" id="saveSettings">Save and test</button>
+  <div id="settingsMsg" class="msg"></div>
+  <label>Look</label><div class="seg" id="theme"></div>
+  <label class="check"><input type="checkbox" id="setArt"> Show commander art on panels</label>
+  <button class="link" id="closeSettings">Back</button>
+</section>
+
+<section id="setup" class="screen page hidden">
+  <h2>New game</h2>
+  <label>Starting life</label><div class="seg" id="startLife"></div>
+  <label>Players</label><div class="seg" id="playerCount"></div>
+  <div id="layoutWrap">
+    <label>Layout</label><div class="seg layouts" id="layout"></div>
+  </div>
+  <label>Look</label><div class="seg" id="look"></div>
+  <div id="seats"></div>
+  <label>Who goes first?</label><div class="seg stack" id="first"></div>
+  <button class="secondary small" id="randomFirst">Pick at random</button>
+  <div id="syncNote" class="muted note"></div>
+  <button class="primary" id="startGame">Start game</button>
+  <div id="setupMsg" class="msg"></div>
+  <button class="link" id="cancelSetup">Cancel</button>
+</section>
+
+<section id="table" class="screen hidden">
+  <div class="board" id="board"></div>
+  <div class="hub" id="hub">
+    <button class="hubBtn" id="undo" aria-label="Undo"><span class="l">Undo</span></button>
+    <button class="turn" id="pass"><span id="turnLabel">Turn 1</span><small id="activeLabel"></small></button>
+    <button class="dmgDone" id="dmgDone">Done</button>
+    <button class="hubBtn" id="menuBtn" aria-label="Options"><span class="l">Options</span></button>
+  </div>
+  <div class="menu hidden" id="menu">
+    <button id="finishNow">Finish game</button>
+    <button id="resetLife">Restart with same players</button>
+    <button id="toHome">Back to home (keep game)</button>
+    <button id="abandon" class="danger">Abandon game</button>
+    <button id="closeMenu">Close</button>
+  </div>
+  <div class="radInfo hidden" id="radInfo" role="dialog" aria-modal="true" aria-labelledby="radText">
+    <div class="face">
+      <div class="menu radCard">
+        <img id="radImg" class="hidden" alt="The Radiation token">
+        <div>
+          <p id="radText">At the beginning of your precombat main phase, if you have any rad counters, mill that many cards. For each nonland card milled this way, you lose 1 life and a rad counter.</p>
+          <button id="radClose">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="finish" class="screen page hidden">
+  <h2>Game over</h2>
+  <label>Who won?</label><div class="seg stack" id="winner"></div>
+  <label>How</label><div class="seg" id="victory"></div>
+  <div class="row">
+    <div><label>Turns</label><input id="turns" type="number" inputmode="numeric" min="1"></div>
+    <div><label>1st elimination</label><input id="elim" type="number" inputmode="numeric" min="1"></div>
+  </div>
+  <label>Notes</label><textarea id="notes"></textarea>
+  <details id="detailsWrap">
+    <summary>Game details <span class="muted" id="detailsSummary"></span></summary>
+    <div class="row">
+      <div><label>Date</label><input id="date" type="date"></div>
+      <div><label>Pod</label><input id="pod" list="podList" autocomplete="off"></div>
+    </div>
+    <label>Power</label><div class="seg" id="power"></div>
+    <label>Bracket</label><div class="seg" id="bracket"></div>
+  </details>
+  <div id="finishNote" class="muted note"></div>
+  <button class="primary" id="saveGame">Save game</button>
+  <div id="finishMsg" class="msg"></div>
+  <button class="link" id="backToTable">Back to the table</button>
+</section>
+
+<datalist id="podList"></datalist>
+<datalist id="deckList"></datalist>
+<datalist id="cmdList"></datalist>
+<div class="toast" id="toast"></div>
+<div class="menu confirm hidden" id="confirm" role="dialog" aria-modal="true" aria-labelledby="confirmText">
+  <p id="confirmText"></p>
+  <button id="confirmOk" class="danger">OK</button>
+  <button id="confirmCancel">Cancel</button>
+</div>
+
+
+<script src="app.js"></script>
+</body>
+</html>

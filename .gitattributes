@@ -1,0 +1,5 @@
+# The app's files are LF; keep them that way on every machine.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.woff2 binary

@@ -1,0 +1,435 @@
+@font-face { font-family: "Oswald"; src: url(fonts/Oswald-700.woff2) format("woff2"); font-weight: 200 700; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url(fonts/BarlowCondensed-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url(fonts/BarlowCondensed-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+
+:root {
+  --text: #f4f3f0; --muted: #a3a2b4; --hair: rgba(255, 255, 255, .22);
+  --accent: #6c6cdc; --accent-hi: #8585f2; --danger: #ff6a5e; --caution: #ffbd4a; --ok: #5fdc8c; --orange: #c9500c;
+  --W: #e9dfbf; --U: #3d7cc4; --B: #4a4150; --R: #c9472f; --G: #3a8a55; --C: #8b8b8b;
+  --num: "Oswald", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --cond: "Barlow Condensed", "Oswald", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; color: var(--text); overscroll-behavior: none;
+  font: 16px/1.4 -apple-system, system-ui, "Segoe UI", sans-serif;
+  background: radial-gradient(120% 70% at 50% 0%, #1c2140 0%, #0d0e18 55%, #08080b 100%) fixed #08080b; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.hidden { display: none !important; }
+.muted { color: var(--muted); font-size: 14px; }
+.note { margin-top: 16px; text-align: center; }
+
+/* ---------- regular pages, the same in both looks ---------- */
+.page { max-width: 480px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 18px 40px; }
+h1, h2 { font-family: var(--cond); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; text-align: center; }
+h1 { font-size: 34px; margin: 28px 0 22px; } h2 { font-size: 26px; margin: 8px 0 4px; }
+label { display: block; font-family: var(--cond); font-size: 15px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .08em; color: #e6e5f2; text-align: center; margin: 22px 0 8px; }
+label small { font-weight: 600; color: var(--muted); }
+input, textarea { width: 100%; font: inherit; font-size: 17px; padding: 12px 14px; border: 2px solid var(--accent);
+  border-radius: 6px; background: rgba(14, 14, 36, .75); color: var(--text); }
+input::placeholder { color: rgba(255, 255, 255, .38); }
+textarea { min-height: 72px; resize: vertical; }
+.row { display: flex; gap: 12px; } .row > div { flex: 1; min-width: 0; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { flex: 1 1 auto; min-width: 44px; min-height: 48px; padding: 8px 10px; border: 2px solid var(--accent);
+  border-radius: 6px; background: rgba(14, 14, 36, .75); font-family: var(--cond); font-weight: 700; font-size: 17px; letter-spacing: .03em; }
+.seg button.on { background: var(--accent); color: #fff; }
+/* Short option rows are one joined bar. */
+.seg:not(.stack):not(#victory) { gap: 0; flex-wrap: nowrap; border: 2px solid var(--accent); border-radius: 3px; overflow: hidden; }
+.seg:not(.stack):not(#victory) button { flex: 1 1 0; border: 0; border-right: 2px solid var(--accent); border-radius: 0; font-size: 24px; min-height: 54px; }
+.seg:not(.stack):not(#victory) button:last-child { border-right: 0; }
+.seg.stack { flex-direction: column; gap: 0; border: 2px solid var(--accent); border-radius: 3px; overflow: hidden; }
+.seg.stack button { border: 0; border-bottom: 2px solid var(--accent); border-radius: 0; text-align: center; font-size: 18px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.seg.stack button:last-child { border-bottom: 0; }
+#victory button { flex: 1 1 40%; font-size: 15px; text-transform: uppercase; }
+.primary { display: block; width: 100%; max-width: 280px; margin: 30px auto 0; min-height: 50px; border: 0; border-radius: 6px;
+  background: var(--orange); color: #fff; font-size: 21px; font-weight: 500; letter-spacing: .01em; }
+.secondary { display: block; width: 100%; max-width: 280px; margin: 12px auto 0; min-height: 46px; border: 2px solid var(--accent);
+  border-radius: 6px; background: rgba(14, 14, 36, .75); font-family: var(--cond); font-weight: 700; font-size: 17px;
+  text-transform: uppercase; letter-spacing: .06em; }
+.secondary.small { min-height: 40px; margin-top: 10px; font-size: 15px; }
+.link { display: block; margin: 22px auto 0; border: 0; background: none; color: #b9b9ff; font-family: var(--cond);
+  font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: .08em; }
+.card { margin-top: 24px; padding: 14px; border: 1px solid var(--hair); border-radius: 8px; background: rgba(0, 0, 0, .35); text-align: center; }
+.msg { margin-top: 12px; font-size: 14px; min-height: 1em; color: var(--muted); text-align: center; }
+.msg.error { color: var(--danger); }
+details { margin-top: 20px; border: 1px solid var(--hair); border-radius: 8px; padding: 12px 14px; background: rgba(0, 0, 0, .35); }
+summary { font-family: var(--cond); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; }
+.toast { position: fixed; left: 50%; bottom: calc(70px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  background: #000; color: #fff; border: 1px solid var(--accent); padding: 8px 16px; border-radius: 6px; font-family: var(--cond);
+  font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: .06em; opacity: 0; transition: opacity .2s;
+  pointer-events: none; z-index: 50; white-space: nowrap; }
+.toast.show { opacity: 1; }
+label.check { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 28px; font-size: 15px; }
+label.check input { width: 22px; height: 22px; accent-color: var(--accent); }
+
+/* Layout picker: tiny diagrams of the two 4-player layouts. */
+.layouts button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px;
+  font-size: 15px !important; text-transform: uppercase; letter-spacing: .05em; }
+.mini { display: grid; gap: 2px; width: 54px; height: 70px; }
+.mini i { background: transparent; border: 1.5px solid currentColor; opacity: .9; }
+
+/* A seat in setup: the commander with its Partner switch beside it, and the partner's name under it while that is on. */
+.seat { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 4px; align-items: center; }
+.toggle { display: flex; align-items: center; gap: 7px; border: 0; background: none; padding: 8px 2px 8px 6px; font-family: var(--cond);
+  font-weight: 700; font-size: 14px; letter-spacing: .05em; text-transform: uppercase; }
+.toggle::before { content: ""; width: 38px; height: 20px; border-radius: 10px; flex: none; background:
+  radial-gradient(circle at 10px 50%, #fff 0 3.5px, transparent 4px), radial-gradient(circle at 10px 50%, transparent 0 6.5px, #fff 7px 9px, transparent 9.5px),
+  #34346e; }
+.toggle.on::before { background:
+  radial-gradient(circle at 28px 50%, #fff 0 3.5px, transparent 4px), radial-gradient(circle at 28px 50%, transparent 0 6.5px, #fff 7px 9px, transparent 9.5px),
+  var(--accent); }
+
+/* ---------- the table, shared by both looks ---------- */
+#table { position: fixed; inset: 0; user-select: none; -webkit-user-select: none; touch-action: manipulation; background: #000; }
+.board { position: absolute; display: grid; gap: 4px; }
+.panel { position: relative; overflow: hidden; container-type: size; background: #1a1a1f; }
+.panel.active::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; border-radius: inherit; }
+.dmgMode .panel.active::after { display: none; }
+
+/* Each player's face is sized and rotated so it reads upright from their seat, and is a size container too,
+   so everything inside is sized in the face's upright units. */
+.face { position: absolute; top: 50%; left: 50%; width: 100cqw; height: 100cqh; transform: translate(-50%, -50%); container-type: size; }
+.r90 .face { width: 100cqh; height: 100cqw; transform: translate(-50%, -50%) rotate(90deg); }
+.r180 .face { transform: translate(-50%, -50%) rotate(180deg); }
+.r270 .face { width: 100cqh; height: 100cqw; transform: translate(-50%, -50%) rotate(-90deg); }
+
+/* The art keeps its color. A dark pocket behind the numeral and gradients at the top and bottom carry the text. */
+.tint { position: absolute; inset: 0; opacity: .9; }
+.tint::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .35); }
+.tint.art { display: flex; opacity: 1; }
+.tint.art > div { flex: 1; background-size: cover; background-position: center 30%; }
+.tint.art::after { background:
+  radial-gradient(ellipse 46% 42% at 50% var(--pocket, 50%), rgba(0, 0, 0, .55), rgba(0, 0, 0, 0)),
+  linear-gradient(rgba(0, 0, 0, .28), rgba(0, 0, 0, 0) 28%, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, .66)); }
+
+.lay { position: absolute; z-index: 1; pointer-events: none; }
+.name, .head .sub { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.name { font-family: var(--cond); font-weight: 700; text-transform: uppercase; }
+.badges { display: flex; flex-wrap: wrap; gap: 4px; pointer-events: none; }
+.badges > span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-family: var(--cond); font-weight: 700; line-height: 1; }
+.num { position: relative; pointer-events: none; font-family: var(--num); font-weight: 700; line-height: 1; letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums; text-shadow: 0 2px 14px rgba(0, 0, 0, .6); }
+/* Low life tints the numeral itself, never the panel: amber at 10, red at 5. The glow keeps it readable over art. */
+.num.warn { color: var(--caution); text-shadow: 0 2px 14px rgba(0, 0, 0, .6), 0 0 .12em rgba(255, 189, 74, .35); }
+.num.lethal { color: var(--danger); text-shadow: 0 2px 14px rgba(0, 0, 0, .6), 0 0 .12em rgba(255, 106, 94, .4); }
+/* The running total of a burst of taps floats beside the numeral, then fades. */
+.delta { position: absolute; left: 100%; top: 6%; margin-left: .1em; font-size: .3em; letter-spacing: 0; white-space: nowrap;
+  color: var(--ok); text-shadow: 0 1px 6px rgba(0, 0, 0, .7); animation: delta 1.5s ease-out forwards; }
+.delta.neg { color: var(--danger); }
+@keyframes delta { 0% { opacity: 0; transform: translateY(6px); } 6% { opacity: 1; transform: none; }
+  70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+.zone { position: absolute; width: 50%; border: 0; background: none; padding: 0; display: flex; align-items: center; pointer-events: auto;
+  font: 300 24px/1 -apple-system, system-ui, "Segoe UI", sans-serif; color: rgba(255, 255, 255, .7); text-shadow: 0 1px 4px rgba(0, 0, 0, .8); }
+.zone.minus { left: 0; justify-content: flex-start; } .zone.plus { right: 0; justify-content: flex-end; }
+.zone:active { background: rgba(255, 255, 255, .06); }
+.actions button { pointer-events: auto; border: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--cond); font-weight: 600; line-height: 1; text-transform: uppercase; color: #fff; }
+.actions button:active { background: rgba(255, 255, 255, .14); }
+/* The tools show only on panels marked .tools; app.js marks every panel unless the look shows them on demand. */
+.panel:not(.tools) .actions { display: none; }
+/* The values a tile can list (see tileValues) need tiles that always show, so a look opts in. */
+.actions .vals { display: none; }
+.more { pointer-events: auto; }
+
+.out { position: absolute; inset: 0; background: rgba(0, 0, 0, .8); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px; z-index: 3; }
+.out div { text-transform: uppercase; font-family: var(--num); font-weight: 700; font-size: 44px; letter-spacing: .06em; line-height: 1; }
+.out small { font-family: var(--cond); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+/* Panel overlays: tax, mana, counters. */
+.sheet { position: absolute; inset: 0; background: rgba(5, 5, 9, .9); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  padding: 6px; display: flex; flex-direction: column; gap: 5px; z-index: 4; }
+.sheet h3 { margin: 1px 0 0; font-family: var(--cond); font-weight: 700; font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
+  text-align: center; color: rgba(255, 255, 255, .8); }
+.grid { flex: 1; min-height: 0; display: grid; gap: 5px; }
+/* minmax(0, …) keeps the columns even, so a long name ellipsizes instead of pushing the other column off the sheet. */
+.grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid.six { grid-template-columns: repeat(6, 1fr); }
+.grid:not(.two):not(.six) .ctr b { font-size: 44px; min-width: 44px; }
+.ctr { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 0; border: 1px solid var(--hair);
+  border-radius: 7px; background: rgba(255, 255, 255, .03); padding: 0 2px; }
+.ctr span { flex: 1; font-family: var(--cond); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255, 255, 255, .85); }
+.ctr b { min-width: 26px; text-align: center; font-family: var(--num); font-weight: 700; font-size: 26px; line-height: 1;
+  font-variant-numeric: tabular-nums; }
+.ctr button { min-width: 34px; height: 100%; max-height: 44px; border: 0; background: none; font-size: 24px; font-weight: 300;
+  color: rgba(255, 255, 255, .85); }
+/* A counter's icon and name, as tall as its row. Rad's is a button that opens the rad reminder. */
+.ctr .ctrName { flex: 1; min-width: 0; height: auto; max-height: none; align-self: stretch; display: flex; align-items: center;
+  justify-content: center; gap: 4px; padding: 0 0 0 2px; border: 0; background: none; color: rgba(255, 255, 255, .85); }
+.ctrName svg { width: 16px; height: 16px; flex: none; stroke-width: 1.8; }
+.ctrName .l { flex: 0 1 auto; font-size: 11px; letter-spacing: .05em; }
+button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px; }
+/* Narrower faces (side seats with four or more players) would leave a name two letters, so they show the icons alone. */
+@container (max-width: 347px) {
+  .ctrName .l { display: none; }
+}
+/* Mana tiles keep their dot 8px clear of the top edge; on short faces the + and − give up height before it does. */
+.ctr.vert { flex-direction: column-reverse; justify-content: space-evenly; padding: 8px 0 4px; }
+/* Flex keeps the glyph centered once a short tile squeezes the button below its line height; a plain button top-aligns it. */
+.ctr.vert button { height: auto; min-height: 18px; min-width: 100%; display: flex; align-items: center; justify-content: center; }
+.ctr.vert .pip { order: 1; }
+/* Storm replaces the mana sheet's title: one wide target, a tap anywhere adds 1. */
+.storm { flex: none; display: flex; align-items: center; justify-content: center; gap: 10px; height: clamp(26px, 15cqh, 38px);
+  padding: 0 12px; border: 1px solid var(--hair); border-radius: 7px; background: rgba(255, 255, 255, .03); }
+.storm:active { background: rgba(255, 255, 255, .14); }
+.storm .l { font-family: var(--cond); font-weight: 700; font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
+  color: rgba(255, 255, 255, .8); }
+.storm b { font-family: var(--num); font-weight: 700; font-size: clamp(21px, 13cqh, 28px); line-height: 1; font-variant-numeric: tabular-nums; }
+/* Side seats' faces are under 200px tall, where storm, six tiles and the buttons have to share about 160px. */
+@container (max-height: 200px) {
+  .ctr.vert { padding-bottom: 2px; }
+  .ctr.vert b { font-size: 22px; }
+}
+.pip { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex: none; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); }
+.sheetBtns { display: flex; gap: 6px; }
+.sheetBtns button { flex: 1; min-height: 32px; border: 1px solid rgba(255, 255, 255, .35); border-radius: 6px; background: transparent;
+  font-family: var(--cond); font-weight: 700; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; }
+.sheetBtns button:last-child { border: 2px solid var(--accent); background: rgba(40, 40, 110, .55); }
+.sheetBtns .danger { border-color: #e0483d; color: #ff9d95; }
+
+/* Commander damage: the sources dimmed, the target in purple. */
+.dmg { position: absolute; inset: 0; background: rgba(4, 4, 10, .8); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 9px; padding: 8px; z-index: 5; }
+.dmg.target { background: linear-gradient(rgba(82, 82, 188, .9), rgba(66, 66, 165, .93)); box-shadow: inset 0 0 0 4px #7676ea; }
+.dmg h4 { margin: 0; display: flex; align-items: center; gap: 7px; max-width: 100%; font-family: var(--cond); font-weight: 700;
+  font-size: 22px; line-height: 1; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.dmg h4 span { overflow: hidden; text-overflow: ellipsis; }
+.dmg h4 svg { width: 19px; height: 19px; flex: none; stroke-width: 1.8; }
+.dmg .sub { margin-top: -3px; font-family: var(--cond); font-weight: 700; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; }
+.dmgRow { display: flex; gap: 8px; width: 82%; max-width: 330px; }
+.dmgRow .ctr { flex: 1; min-width: 0; height: 40px; position: relative; border: 2.5px solid var(--accent-hi); border-radius: 8px;
+  background: rgba(16, 16, 46, .62); padding: 0; gap: 0; }
+.dmgRow .ctr button { flex: 1; min-width: 0; max-height: none; font-size: 22px; padding: 0 8px; }
+.dmgRow .ctr button:first-of-type { text-align: right; } .dmgRow .ctr button:last-of-type { text-align: left; }
+.dmgRow .ctr b { font-family: var(--cond); font-size: 30px; min-width: 22px; }
+.dmgRow.split { max-width: 360px; }
+.dmg.target .dmgRow { width: 64%; }
+.dmgRow.split .ctr { margin-top: 13px; }
+.dmgRow .ctr span { position: absolute; bottom: calc(100% + 3px); left: 0; right: 0; font-size: 11px; color: rgba(255, 255, 255, .7); }
+.dmgLife { position: absolute; top: 8px; right: 14px; display: flex; flex-direction: column-reverse; align-items: center; gap: 6px;
+  font-family: var(--num); font-weight: 600; font-size: 30px; line-height: 1; }
+.dmgLife svg { width: 20px; height: 20px; color: #ff5a4f; }
+.dmgBack { position: absolute; top: 10px; left: 10px; width: 40px; height: 40px; border: 0; background: none; padding: 0; }
+.dmgBack svg { width: 30px; height: 30px; stroke-width: 1.5; }
+@container (max-width: 300px) {
+  .dmg h4 { font-size: 18px; }
+  .dmg .sub { font-size: 11px; }
+  .dmg.target .dmgRow { width: 80%; }
+  .dmgRow.split { width: 92%; }
+  .dmgRow.split .ctr button { padding: 0 4px; }
+  .dmgLife { top: 6px; right: 8px; font-size: 22px; }
+  .dmgLife svg { display: none; }
+  .dmgBack { top: 2px; left: 2px; }
+  .dmgBack svg { width: 24px; height: 24px; }
+}
+/* A narrow face with room for it stacks partner counters one per row instead of squeezing two side by side. */
+@container (max-width: 300px) and (min-height: 280px) {
+  .dmgRow.split { flex-direction: column; width: 82%; gap: 8px; }
+}
+
+/* The hub: undo, pass the turn (or Done in damage mode), and the menu. */
+.hub { position: absolute; z-index: 6; font-family: var(--cond); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
+.hub button { text-transform: uppercase; }
+.hubBtn { display: flex; align-items: center; justify-content: center; border: 0; }
+.hubBtn svg { width: 20px; height: 20px; }
+.turn { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+.turn small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#table:not(.dmgMode) .dmgDone, .dmgMode #pass, .dmgMode #menuBtn { display: none; }
+
+.menu { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(300px, 86vw);
+  background: #07070b; border: 1px solid var(--hair); border-radius: 8px; padding: 10px; z-index: 10;
+  display: flex; flex-direction: column; gap: 6px; box-shadow: 0 10px 40px rgba(0, 0, 0, .8); }
+.menu button { min-height: 46px; border: 1px solid var(--hair); border-radius: 6px; background: transparent; font-family: var(--cond);
+  font-weight: 700; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; }
+.menu .danger { color: var(--danger); border-color: rgba(224, 72, 61, .7); }
+/* The question card is outside the table screen so it can also ask from the home screen. */
+.confirm { position: fixed; z-index: 30; }
+.menu p { margin: 2px 4px 6px; text-align: center; font-family: var(--cond); font-weight: 600; font-size: 17px; line-height: 1.3; letter-spacing: .02em; }
+#closeMenu, #radClose { border: 2px solid var(--accent); background: rgba(40, 40, 110, .55); }
+/* The rad reminder is the question card holding the Radiation token. Its .face is turned like the opener's panel, and on a
+   side seat, where the face is wide and short, the token sits beside the text instead of above it. */
+.radInfo { position: absolute; inset: 0; z-index: 20; container-type: size; background: rgba(0, 0, 0, .55); }
+.radCard { width: min(320px, calc(100cqw - 40px)); }
+.radCard > div { display: flex; flex-direction: column; gap: 6px; }
+.radCard img { display: block; width: 100%; aspect-ratio: 488 / 680; max-height: calc(100cqh - 210px); object-fit: contain;
+  border-radius: 4.5% / 3.2%; }
+@container (max-height: 560px) {
+  .radCard { flex-direction: row; align-items: center; gap: 12px; width: auto; max-width: calc(100cqw - 40px); }
+  .radCard img { width: auto; height: calc(100cqh - 60px); max-height: 420px; }
+  .radCard > div { width: 250px; }
+}
+
+/* ---------- Companion: tools always showing as two outlined tiles at each end, a bar along the bottom ---------- */
+[data-theme="companion"] .board { left: 0; right: 0; top: env(safe-area-inset-top); bottom: calc(52px + env(safe-area-inset-bottom)); }
+[data-theme="companion"] .panel.active::after { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .9),
+  inset 0 0 14px 2px rgba(190, 200, 255, .55), inset 0 0 40px rgba(150, 160, 255, .25); }
+[data-theme="companion"] .face { --tw: clamp(48px, 19.5cqw, 80px); --nh: clamp(34px, 21cqh, 44px); --pocket: 62%; }
+[data-theme="companion"] .lay { inset: 4px; display: grid; grid-template-columns: var(--tw) 1fr var(--tw);
+  grid-template-rows: var(--nh) 1fr; gap: 4px; }
+[data-theme="companion"] .head { grid-area: 1 / 2; min-width: 0; border: 1px solid var(--hair); border-radius: 7px; display: flex;
+  flex-direction: column; align-items: center; justify-content: center; padding: 0 6px; text-shadow: 0 1px 4px rgba(0, 0, 0, .85); }
+[data-theme="companion"] .name { font-size: 16px; line-height: 1.05; letter-spacing: .14em; }
+[data-theme="companion"] .you { display: none; }
+[data-theme="companion"] .head .sub { font-family: var(--cond); font-weight: 600; font-size: 11.5px; line-height: 1.15; letter-spacing: .03em;
+  color: rgba(255, 255, 255, .7); }
+[data-theme="companion"] .badges { grid-area: 2 / 2; align-self: start; justify-content: center; margin: 5px 4px 0; z-index: 1; }
+[data-theme="companion"] .badges > span { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; padding: 3px 5px 2px;
+  border: 1px solid rgba(255, 255, 255, .55); border-radius: 4px; background: rgba(0, 0, 0, .45); }
+[data-theme="companion"] .badges .warn { border-color: #ff5d52; color: #ffc2bd; background: rgba(150, 20, 14, .6); }
+[data-theme="companion"] .badges svg { display: none; }
+/* The Damage and Counters tiles list commander damage and counters here, so their chips would only repeat them. */
+[data-theme="companion"] .badges .tiled { display: none; }
+/* The life strip is drawn between the lower tiles, but the tap halves run under the tiles too, so a sloppy tap still lands. */
+[data-theme="companion"] .strip { grid-area: 2 / 2; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--hair); border-radius: 7px; }
+[data-theme="companion"] .num { padding-top: calc((100cqh - var(--nh)) * .03);
+  font-size: min(calc((100cqh - var(--nh) - 12px) * .71), calc(100cqw - 2 * var(--tw) - 60px)); }
+[data-theme="companion"] .num.w3 { font-size: min(calc((100cqh - var(--nh) - 12px) * .71), calc((100cqw - 2 * var(--tw) - 60px) * .68)); }
+[data-theme="companion"] .zone { top: calc(var(--nh) + 4px); bottom: 0; font-size: 22px; color: rgba(255, 255, 255, .85); }
+[data-theme="companion"] .zone.minus { padding-left: calc(var(--tw) + 10px); }
+[data-theme="companion"] .zone.plus { padding-right: calc(var(--tw) + 10px); }
+[data-theme="companion"] .actions { display: contents; }
+[data-theme="companion"] .actions button { position: relative; z-index: 1; min-width: 0; height: var(--nh); padding: 0 2px; gap: 1px;
+  border: 1px solid var(--hair); border-radius: 7px; background: rgba(0, 0, 0, .14); font-size: 12px; letter-spacing: .06em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .7); overflow: hidden; }
+[data-theme="companion"] .actions button:active { background: rgba(255, 255, 255, .14); }
+[data-theme="companion"] .a-tax { grid-area: 1 / 1; }
+[data-theme="companion"] .a-damage { grid-area: 2 / 1; }
+[data-theme="companion"] .a-mana { grid-area: 1 / 3; }
+[data-theme="companion"] .a-counters { grid-area: 2 / 3; }
+[data-theme="companion"] .a-damage, [data-theme="companion"] .a-counters { align-self: start; height: calc(var(--nh) * 1.18); }
+[data-theme="companion"] .actions svg { width: 19px; height: 19px; stroke-width: 1.6; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+/* A tile with values lists them in place of its icon, as the official app does, and grows to fit as far as its row allows.
+   Each damage entry is the hitter's initial on a square of their colors, then the total. */
+[data-theme="companion"] .actions button:has(> .vals) { height: auto; min-height: calc(var(--nh) * 1.18); max-height: 100%; padding: 5px 2px; gap: 4px; }
+[data-theme="companion"] .actions button:has(> .vals) > svg { display: none; }
+[data-theme="companion"] .actions .vals { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px 7px; max-width: 100%; }
+[data-theme="companion"] .vals .v { display: inline-flex; align-items: center; gap: 3px; font-family: var(--num); font-size: 14px;
+  letter-spacing: 0; font-variant-numeric: tabular-nums; }
+[data-theme="companion"] .vals i { width: 13px; height: 13px; flex: none; border-radius: 3px; font: normal 700 9px/13px var(--cond);
+  text-align: center; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .55), inset 0 0 0 7px rgba(0, 0, 0, .3); }
+[data-theme="companion"] .vals svg { width: 14px; height: 14px; stroke-width: 2; }
+[data-theme="companion"] .vals .warn { color: var(--caution); }
+[data-theme="companion"] .vals .lethal { color: var(--danger); }
+[data-theme="companion"] .more { display: none; }
+/* Small faces (5 and 6 players): tighter type so the tiles and name still fit. */
+@container (max-width: 280px) {
+  [data-theme="companion"] .actions button { font-size: 10.5px; letter-spacing: .02em; }
+  [data-theme="companion"] .actions svg { width: 17px; height: 17px; }
+  [data-theme="companion"] .name { font-size: 14px; letter-spacing: .06em; }
+  [data-theme="companion"] .head .sub { font-size: 10.5px; }
+}
+[data-theme="companion"] .hub { left: 0; right: 0; bottom: 0; height: calc(52px + env(safe-area-inset-bottom));
+  padding: 0 12px env(safe-area-inset-bottom); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; background: #000; }
+[data-theme="companion"] .hubBtn { gap: 7px; height: 44px; padding: 0 6px; background: none; font-size: 17px; letter-spacing: .07em; }
+[data-theme="companion"] #undo { justify-self: start; }
+[data-theme="companion"] #menuBtn { grid-column: 3; justify-self: end; }
+[data-theme="companion"] .turn { grid-column: 2; grid-row: 1; height: 42px; min-width: 128px; padding: 0 18px; gap: 1px;
+  border: 1.5px solid var(--accent-hi); border-radius: 21px; letter-spacing: .07em;
+  background: radial-gradient(120% 140% at 50% 0%, #2a2f6e, #12142e 70%);
+  box-shadow: 0 0 14px rgba(110, 110, 240, .55), inset 0 0 8px rgba(140, 140, 255, .25); }
+[data-theme="companion"] .turn span { font-size: 18px; letter-spacing: .1em; }
+[data-theme="companion"] .turn small { font-size: 11px; letter-spacing: .12em; color: #c2c3f5; max-width: 140px; }
+[data-theme="companion"] .turn.over { background: var(--orange); border-color: #ff8a3d; box-shadow: 0 0 14px rgba(255, 120, 40, .5); }
+[data-theme="companion"] .turn.over small { color: #ffe1cc; }
+[data-theme="companion"] .dmgDone { grid-column: 2; grid-row: 1; height: 40px; min-width: 150px; padding: 0 18px;
+  border: 2px solid var(--accent-hi); border-radius: 6px; background: #15153d; font-size: 19px; letter-spacing: .06em; }
+
+/* ---------- Minimal: the panel is the art and the numeral, tools come up on demand, the hub sits in the middle ---------- */
+[data-theme="minimal"] { --num: "Barlow Condensed", "Oswald", "Arial Narrow", sans-serif; --gutter: 6px; }
+[data-theme="minimal"] .board { top: env(safe-area-inset-top); right: env(safe-area-inset-right); bottom: env(safe-area-inset-bottom);
+  left: env(safe-area-inset-left); padding: var(--gutter); gap: var(--gutter); }
+/* isolate keeps the active outline's z-index inside its panel, under the hub that sits on the board here. */
+[data-theme="minimal"] .panel { border-radius: 14px; isolation: isolate; background: #1b1b1f; }
+[data-theme="minimal"] #table:not(.dmgMode) .panel.active { box-shadow: 0 0 12px rgba(255, 255, 255, .45); }
+[data-theme="minimal"] .panel.active::after { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .85), inset 0 0 22px rgba(255, 255, 255, .22); }
+[data-theme="minimal"] .lay { inset: 0; }
+[data-theme="minimal"] .head { position: absolute; left: 20%; right: 20%; bottom: 9px; margin: 0 auto; width: max-content; max-width: 60%;
+  padding: 4px 8px; pointer-events: auto; cursor: pointer; z-index: 3; text-shadow: 0 1px 6px rgba(0, 0, 0, .9); }
+[data-theme="minimal"] .name { font-size: 12px; font-weight: 600; line-height: 1; letter-spacing: .16em; color: rgba(255, 255, 255, .88); }
+[data-theme="minimal"] .head .sub { display: none; }
+[data-theme="minimal"] .badges { position: absolute; bottom: 10px; left: 8px; max-width: 32%; z-index: 2; }
+[data-theme="minimal"] .badges > span { height: 22px; padding: 0 8px 0 6px; border-radius: 999px; background: rgba(0, 0, 0, .58);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font-size: 13px; letter-spacing: .04em; }
+[data-theme="minimal"] .badges .warn { background: rgba(190, 40, 34, .85); }
+[data-theme="minimal"] .badges svg { width: 13px; height: 13px; opacity: .9; }
+[data-theme="minimal"] .badges .l { display: none; }
+[data-theme="minimal"] .strip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+[data-theme="minimal"] .zone { top: 0; bottom: 0; padding: 0 16px; font-size: 34px; color: rgba(255, 255, 255, .55); }
+[data-theme="minimal"] .num { font-size: min(60cqmin, 36cqmax); text-shadow: 0 2px 14px rgba(0, 0, 0, .6), 0 0 2px rgba(0, 0, 0, .5); }
+[data-theme="minimal"] .more { position: absolute; bottom: 6px; right: 6px; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%;
+  background: rgba(0, 0, 0, .45); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: rgba(255, 255, 255, .85);
+  display: flex; align-items: center; justify-content: center; z-index: 5; }
+[data-theme="minimal"] .more svg { width: 18px; height: 18px; }
+/* The tools open out of the ... button, which stays at the pill's right end as their close button. */
+[data-theme="minimal"] .actions { position: absolute; right: 3px; bottom: 3px; max-width: calc(100% - 6px); display: flex; gap: 2px;
+  padding: 3px 41px 3px 3px; border-radius: 999px; background: rgba(10, 10, 14, .86); -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px); box-shadow: 0 6px 20px rgba(0, 0, 0, .45); z-index: 4; }
+[data-theme="minimal"] .actions button { width: 52px; min-width: 0; height: 34px; gap: 2px; padding: 0; border-radius: 999px; background: none; }
+[data-theme="minimal"] .actions button:active { background: rgba(255, 255, 255, .14); }
+[data-theme="minimal"] .actions svg { width: 17px; height: 17px; flex: none; }
+[data-theme="minimal"] .actions .l { font-size: 8.5px; letter-spacing: .1em; opacity: .8; }
+@container (max-width: 215px) {
+  [data-theme="minimal"] .actions .l { display: none; }
+}
+[data-theme="minimal"] .sheet { background: rgba(10, 10, 14, .9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); padding: 8px 10px; gap: 6px; }
+/* On a side panel the hub lies along the sheet's top edge, so the title keeps to the corner. */
+[data-theme="minimal"] .sheet h3 { text-align: left; padding-left: 4px; }
+[data-theme="minimal"] .sheet .ctr, [data-theme="minimal"] .storm { border-color: rgba(255, 255, 255, .12); border-radius: 14px;
+  background: rgba(255, 255, 255, .07); }
+/* Like the sheet titles before it, storm's label keeps to the corner, clear of the hub on a side sheet's top edge. Where the
+   hub sits at a corner of that edge instead (3 players, 4 two per side, 6), the middle is the clear part. */
+[data-theme="minimal"] .storm { justify-content: flex-start; }
+[data-theme="minimal"] :is([data-layout="3"], [data-layout="4sides"], [data-layout="6"]) .storm { justify-content: center; }
+[data-theme="minimal"] .storm:active { background: rgba(255, 255, 255, .16); }
+@container (max-height: 200px) {
+  [data-theme="minimal"] .sheet:has(.storm) { padding-top: 6px; gap: 4px; }
+}
+/* Bigger targets: buttons fill the tile, mana's top half adds and bottom half removes, and a lone counter
+   splits into halves like the life total, its label a caption. */
+[data-theme="minimal"] .sheet .ctr button { max-height: none; }
+[data-theme="minimal"] .sheet .ctr.vert button { flex: 1; }
+[data-theme="minimal"] .grid:not(.two):not(.six) .ctr { position: relative; }
+[data-theme="minimal"] .grid:not(.two):not(.six) .ctr span { position: absolute; top: 12px; left: 0; right: 0; }
+[data-theme="minimal"] .grid:not(.two):not(.six) .ctr button { flex: 1; }
+[data-theme="minimal"] .grid:not(.two):not(.six) .ctr button:first-of-type { text-align: right; padding-right: 18px; }
+[data-theme="minimal"] .grid:not(.two):not(.six) .ctr button:last-of-type { text-align: left; padding-left: 18px; }
+[data-theme="minimal"] .sheetBtns button { min-height: 34px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .1); }
+[data-theme="minimal"] .sheetBtns .danger { background: rgba(190, 40, 34, .5); color: #fff; }
+[data-theme="minimal"] .dmgRow .ctr { border-radius: 999px; }
+/* Done sits on the target's own edge here, so the back chevron would only crowd it. */
+[data-theme="minimal"] .dmgBack { display: none; }
+/* Short panels tighten the damage rows so the hub on the target's top edge clears its name. */
+@container (max-height: 190px) {
+  [data-theme="minimal"] .dmg { gap: 6px; }
+}
+@container (max-height: 150px) {
+  [data-theme="minimal"] .dmg .sub { display: none; }
+}
+@container (max-width: 300px) {
+  [data-theme="minimal"] .dmgRow .ctr button { padding: 0 4px; }
+}
+[data-theme="minimal"] .hub { left: calc(50% + (env(safe-area-inset-left) - env(safe-area-inset-right)) / 2);
+  top: calc(50% + (env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 2); transform: translate(-50%, -50%);
+  display: flex; flex-direction: var(--seam, row); align-items: center; gap: 4px; }
+[data-theme="minimal"] .hub.edge { top: auto; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); }
+[data-theme="minimal"] .hub .l { display: none; }
+[data-theme="minimal"] .hubBtn { width: 34px; height: 34px; padding: 0; border-radius: 50%; background: #0d0d10; color: rgba(255, 255, 255, .9);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .6); }
+[data-theme="minimal"] .hubBtn svg { width: 17px; height: 17px; }
+[data-theme="minimal"] .turn { width: 56px; height: 56px; padding: 0; border: 2px solid rgba(255, 255, 255, .9); border-radius: 50%;
+  background: #0d0d10; box-shadow: 0 6px 18px rgba(0, 0, 0, .6); font-size: 24px; letter-spacing: 0; }
+[data-theme="minimal"] .turn small { margin-top: 2px; max-width: 46px; font-size: 8px; font-weight: 600; letter-spacing: .12em; color: var(--muted); }
+[data-theme="minimal"] .turn.over { background: var(--accent); border-color: var(--accent); font-size: 14px; }
+[data-theme="minimal"] .turn.over small { color: #fff; }
+[data-theme="minimal"] .dmgDone { height: 30px; min-width: 64px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .92);
+  color: #1b1d55; font-size: 14px; letter-spacing: .12em; box-shadow: 0 4px 14px rgba(0, 0, 0, .6); }
+/* In damage mode every panel's controls sit in its middle, so the hub moves onto the seam along the target's top edge,
+   where the target and its neighbors keep a free band, and turns to face the target. It is slimmer there to fit short
+   panels, and the last shift centers it in the gutter. */
+[data-theme="minimal"] .dmgMode .hubBtn { width: 30px; height: 30px; }
+[data-theme="minimal"] .dmgMode .hub:not(.edge) { left: var(--dmg-x); top: var(--dmg-y); flex-direction: row;
+  transform: translate(-50%, -50%) rotate(var(--dmg-rot)) translateY(calc(var(--gutter) / -2)); }

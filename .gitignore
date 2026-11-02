@@ -1,0 +1,11 @@
+# Claude Code session settings and local launch config
+.claude/
+
+# Screenshot strips and photos used during the redesign (38 MB); not needed to run the app
+prototypes/
+reference images/
+
+node_modules/
+*.log
+Thumbs.db
+.DS_Store
