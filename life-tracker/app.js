@@ -707,10 +707,11 @@ function holdRepeat(btn, fn) {
     let done = false;
     const fire = () => { if (!done) { done = true; fn(); } };
     const again = () => { repeating = true; try { fn(); } finally { repeating = false; } };
-    const off = () => { btn.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', off); };
+    // The move is watched on the window: a finger that crosses into the other half, or off the button, still cancels.
+    const off = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', off); };
     const move = ev => { if (ev.pointerId === id && Math.hypot(ev.clientX - x, ev.clientY - y) > 12) { done = true; stopHolds(); off(); } };
     const up = ev => { if (ev.pointerId === id) { fire(); off(); } };
-    btn.addEventListener('pointermove', move);
+    window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', off);
     holdTimers.push(setTimeout(() => { fire(); holdTimers.push(setTimeout(() => { holdTimers.push(setInterval(again, 110)); }, 370)); }, 80));
@@ -721,6 +722,10 @@ function holdRepeat(btn, fn) {
 // a swipe on their panel again leaves it. Over the status card it closes the card instead. It is tracked on the board,
 // which outlives the re-render a counted tap causes mid-gesture. A swipe that began on a button must not also count
 // as that button's tap, so the click that follows it is swallowed.
+// The phone's own gestures start at the screen's edges (the bar from the bottom, back from the sides), so a touch that
+// begins there is never a swipe, and a swipe acts when the finger lifts, not mid-way, so one the system takes over
+// (which cancels the touch) does nothing.
+const EDGE = 32, SIDE = 24;
 let swipedAt = 0;
 (() => {
   const board = $('board');
@@ -728,26 +733,36 @@ let swipedAt = 0;
   board.addEventListener('pointerdown', e => {
     const panel = e.target.closest('.panel');
     const p = panel ? [...board.children].indexOf(panel) : -1;
-    start = p < 0 ? null : { x: e.clientX, y: e.clientY, id: e.pointerId, p, rot: cellOf(G(), p)[1] };
+    const atEdge = e.clientY > innerHeight - EDGE || e.clientX < SIDE || e.clientX > innerWidth - SIDE;
+    start = p < 0 ? null : { x: e.clientX, y: e.clientY, id: e.pointerId, p, rot: cellOf(G(), p)[1], armed: false, edge: atEdge };
   });
   board.addEventListener('pointermove', e => {
-    if (!start || e.pointerId !== start.id) return;
+    if (!start || start.armed || e.pointerId !== start.id) return;
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    // Any drag, swipe or not, is not a tap: the click that would follow it is swallowed.
+    if (Math.hypot(dx, dy) > 12) swipedAt = Date.now();
+    if (start.edge) return;
     const [along, across] = start.rot % 180 ? [dy, dx] : [dx, dy];
     if (Math.abs(along) < 40 || Math.abs(along) < Math.abs(across) * 1.5) return;
-    const p = start.p;
-    start = null;
+    start.armed = true;
     stopHolds();
     swipedAt = Date.now();
+  });
+  window.addEventListener('pointerup', e => {
+    if (!start || e.pointerId !== start.id) return;
+    const { p, armed } = start;
+    start = null;
+    if (!armed) return;
+    swipedAt = Date.now();
     const g = G();
-    if (ui[p].sheet || g.players[p].out) return;
+    if (!g || ui[p].sheet || g.players[p].out) return;
     if (ui[p].info) { ui[p].info = false; renderTable(); return; }
     if (g.dmgTarget != null) { if (g.dmgTarget === p) { g.dmgTarget = null; commit(); } return; }
     if (g.n < 2) return;
     g.dmgTarget = p;
     commit();
   });
-  ['pointerup', 'pointercancel'].forEach(t => board.addEventListener(t, () => { start = null; }));
+  window.addEventListener('pointercancel', () => { start = null; });
   board.addEventListener('click', e => { if (Date.now() - swipedAt < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
 })();
 
