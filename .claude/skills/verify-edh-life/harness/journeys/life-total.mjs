@@ -1,6 +1,10 @@
 // Life total: taps, the floating delta, press-and-hold, undo grouping, low-life colors and a knockout at zero.
+const AMBER = /rgba\(255, 189, 74, 0\.35\)/;
+const RED = /rgba\(255, 106, 94, 0\.4\)/;
+
 export default async ({ page, app, evidence, assert }) => {
   await app.newGame({ players: 2, names: ["Atraxa, Praetors' Voice", 'Krenko, Mob Boss'] });
+  const glow = p => app.panel(p).locator('.num').evaluate(e => getComputedStyle(e).textShadow);
 
   await app.tapLife(1, -1, 3);
   assert.equal(await app.life(1), 37);
@@ -49,9 +53,11 @@ export default async ({ page, app, evidence, assert }) => {
   await app.tapLife(1, -1, 30);
   assert.equal(await app.life(1), 10);
   assert.equal(await app.panel(1).locator('.num.warn').count(), 1, 'amber at 10');
+  assert.match(await glow(1), AMBER, 'the numeral glows amber');
   await app.tapLife(1, -1, 5);
   assert.equal(await app.life(1), 5);
   assert.equal(await app.panel(1).locator('.num.lethal').count(), 1, 'red at 5');
+  assert.match(await glow(1), RED, 'the numeral glows red');
   await evidence.shot('low-life');
 
   await app.tapLife(1, -1, 5);
@@ -70,4 +76,15 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal((await app.game()).players[1].out, null);
   await evidence.shot('undone');
   evidence.note('knockout undone');
+
+  await app.openMenu();
+  await app.$('toHome').tap();
+  await app.newGame({ players: 2, look: 'minimal' });
+  await app.tapLife(1, -1, 30);
+  assert.equal(await app.panel(1).locator('.num.warn').count(), 1);
+  assert.match(await glow(1), AMBER, 'Minimal keeps the amber glow at 10');
+  await app.tapLife(1, -1, 5);
+  assert.match(await glow(1), RED, 'Minimal keeps the red glow at 5');
+  await evidence.shot('low-life-minimal');
+  evidence.note('low-life glow shows in Minimal too');
 };

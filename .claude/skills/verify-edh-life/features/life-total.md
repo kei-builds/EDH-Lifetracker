@@ -10,7 +10,7 @@ knocked out at 0.
 - `life-delta` floats the running total (`+3`, `-3`) beside the numeral for about 1.5 s.
 - `life-hold` keeps counting while a half is held.
 - `life-undo-burst` treats taps on one control within 1.5 s of each other, or one hold and any tap within 1.5 s of its last count, as a single undo step.
-- `life-colors` tints the numeral amber at 10 or below and red at 5 or below.
+- `life-colors` tints the numeral amber at 10 or below and red at 5 or below, with a matching glow, in both looks.
 - `life-out` marks the player Out at 0 with the turn and cause, and offers Finish when one player is left.
 
 ## How to get to it (user POV)
@@ -30,10 +30,11 @@ Preconditions:
 - **Hold.** Hold the user's plus half. `await app.hold(app.lifeButton(0, 1), 900)`. Life is between 42 and 47. One `Undo` returns it to 40.
 - **Long hold then tap.** `await app.hold(app.lifeButton(0, -1), 2000); await app.tapLife(0, -1)`. Life is between 22 and 27 and the undo stack grew by 1. One `Undo` returns it to 40.
 - **A pause splits.** `await app.tapLife(1, -1, 2); await page.waitForTimeout(1700); await app.tapLife(1, -1, 2)`. Life is 36 and the undo stack grew by 2. One `Undo` gives 38, a second 40.
-- **Low life.** Tap the opponent down. `await app.tapLife(1, -1, 30)` gives 10 and `app.panel(1).locator('.num.warn')` exists; five more give 5 and `.num.lethal` exists.
+- **Low life.** Tap the opponent down. `await app.tapLife(1, -1, 30)` gives 10 and `app.panel(1).locator('.num.warn')` exists; five more give 5 and `.num.lethal` exists. The numeral's computed `textShadow` contains `rgba(255, 189, 74, 0.35)` at 10 and `rgba(255, 106, 94, 0.4)` at 5.
+- **Low life in Minimal.** After the knockout undo, go home through the menu and `await app.newGame({ players: 2, look: 'minimal' })`. Thirty taps down on the opponent give `.num.warn` with the amber glow in `textShadow`; five more give the red glow.
 - **Knockout.** Five more taps reach 0. `app.panel(1).locator('.out')` reads `Out` and `turn 1 · life`; `game.players[1].out.cause` is `life`; `#turnLabel` reads `Finish`.
 - **Undo the knockout.** `await app.$('undo').tap()`. Life is 40, no `.out`, `players[1].out` is null, because the whole unbroken run of taps was one step.
-- **Proof.** `await evidence.shot('three-taps')`, `('after-hold')`, `('low-life')`, `('knocked-out')`, `await evidence.aria('knocked-out')`, `await evidence.storeDump('knocked-out')`.
+- **Proof.** `await evidence.shot('three-taps')`, `('after-hold')`, `('low-life')`, `('knocked-out')`, `await evidence.aria('knocked-out')`, `await evidence.storeDump('knocked-out')`, `await evidence.shot('low-life-minimal')`.
 
 ## Gotchas
 
@@ -42,4 +43,4 @@ Preconditions:
 - The floating delta lives 1.5 s. Read `app.delta` right after the taps, before a screenshot wait.
 - `app.life` reads the numeral's first text node; `textContent` of `.num` would include the delta.
 - A long run of quick taps is one undo step by design. To get separate steps, pause more than 1.5 s between them.
-- The red and amber tints are classes `lethal` and `warn` on `.num`; the screenshot shows the color, the class proves it.
+- The red and amber tints are classes `lethal` and `warn` on `.num`; the screenshot shows the color, the class proves it, and the computed `textShadow` proves the glow is not lost to a look's own shadow rule.

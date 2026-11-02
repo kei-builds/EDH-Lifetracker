@@ -404,6 +404,7 @@ function autocomplete(e) {
   acTimer = setTimeout(async () => {
     try {
       const res = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(q)}`);
+      if (!res.ok) return;
       const names = (await res.json()).data || [];
       acLast = { q: lq, names, complete: names.length < 20 };
       suggest(names);
