@@ -32,6 +32,12 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal(await app.rotation(1), 180, 'the opponent panel faces the top edge');
   assert.equal(await app.theme(), 'companion');
   assert.ok(await app.panel(0).evaluate(e => e.classList.contains('tools')), 'Companion shows the tiles without a tap');
+  const headBelowNumeral = await app.panel(0).evaluate(e => {
+    const head = e.querySelector('.head').getBoundingClientRect(), num = e.querySelector('.num').getBoundingClientRect(), strip = e.querySelector('.strip').getBoundingClientRect();
+    return head.top >= num.bottom - 1 && head.bottom <= strip.bottom + 1 && strip.top < head.top - num.height;
+  });
+  assert.ok(headBelowNumeral, 'Companion puts the name along the bottom of a life box that spans the panel, under the numeral');
+  assert.equal(await app.panel(0).locator('.head .sub').count(), 0, 'no subtitle repeats the name');
   assert.equal(await app.panel(0).locator('.actions button').count(), 4, 'Tax, Damage, Mana, Counters');
   await evidence.shot('table-companion');
   await evidence.aria('table-companion');

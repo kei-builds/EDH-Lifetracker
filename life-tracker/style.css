@@ -114,7 +114,7 @@ label.check input { width: 22px; height: 22px; accent-color: var(--accent); }
   linear-gradient(rgba(0, 0, 0, .28), rgba(0, 0, 0, 0) 28%, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, .66)); }
 
 .lay { position: absolute; z-index: 1; pointer-events: none; }
-.name, .head .sub { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.name { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .name { font-family: var(--cond); font-weight: 700; text-transform: uppercase; }
 .badges { display: flex; flex-wrap: wrap; gap: 4px; pointer-events: none; }
 .badges > span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-family: var(--cond); font-weight: 700; line-height: 1; }
@@ -307,13 +307,12 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 [data-theme="companion"] .face { --tw: clamp(48px, 19.5cqw, 80px); --nh: clamp(34px, 21cqh, 44px); --pocket: 62%; }
 [data-theme="companion"] .lay { inset: 4px; display: grid; grid-template-columns: var(--tw) 1fr var(--tw);
   grid-template-rows: var(--nh) 1fr; gap: 4px; }
-[data-theme="companion"] .head { grid-area: 1 / 2; min-width: 0; border: 1px solid var(--hair); border-radius: 7px; display: flex;
-  flex-direction: column; align-items: center; justify-content: center; padding: 0 6px; text-shadow: 0 1px 4px rgba(0, 0, 0, .85); }
-[data-theme="companion"] .name { font-size: 16px; line-height: 1.05; letter-spacing: .14em; }
-[data-theme="companion"] .you { display: none; }
-[data-theme="companion"] .head .sub { font-family: var(--cond); font-weight: 600; font-size: 11.5px; line-height: 1.15; letter-spacing: .03em;
-  color: rgba(255, 255, 255, .7); }
-[data-theme="companion"] .badges { grid-area: 2 / 2; align-self: start; justify-content: center; margin: 5px 4px 0; z-index: 1; }
+/* The name is one small line along the bottom of the life box, so the art's upper band, where faces sit, stays clear. */
+[data-theme="companion"] .head { grid-area: auto; position: absolute; left: var(--tw); right: var(--tw); bottom: 4px; display: flex;
+  justify-content: center; padding: 0 6px; text-shadow: 0 1px 3px rgba(0, 0, 0, .85); z-index: 2; }
+[data-theme="companion"] .name { font-size: 12px; line-height: 1.2; letter-spacing: .14em; color: rgba(255, 255, 255, .75); }
+
+[data-theme="companion"] .badges { grid-area: 1 / 2; align-self: start; justify-content: center; margin: 5px 4px 0; z-index: 1; }
 [data-theme="companion"] .badges > span { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; padding: 3px 5px 2px;
   border: 1px solid rgba(255, 255, 255, .55); border-radius: 4px; background: rgba(0, 0, 0, .45); }
 [data-theme="companion"] .badges .warn { border-color: #ff5d52; color: #ffc2bd; background: rgba(150, 20, 14, .6); }
@@ -321,12 +320,11 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 /* The Damage and Counters tiles list commander damage and counters here, so their chips would only repeat them. */
 [data-theme="companion"] .badges .tiled { display: none; }
 /* The life strip is drawn between the lower tiles, but the tap halves run under the tiles too, so a sloppy tap still lands. */
-[data-theme="companion"] .strip { grid-area: 2 / 2; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center;
+[data-theme="companion"] .strip { grid-area: 1 / 2 / 3 / 3; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center;
   border: 1px solid var(--hair); border-radius: 7px; }
-[data-theme="companion"] .num { padding-top: calc((100cqh - var(--nh)) * .03);
-  font-size: min(calc((100cqh - var(--nh) - 12px) * .71), calc(100cqw - 2 * var(--tw) - 60px)); }
-[data-theme="companion"] .num.w3 { font-size: min(calc((100cqh - var(--nh) - 12px) * .71), calc((100cqw - 2 * var(--tw) - 60px) * .68)); }
-[data-theme="companion"] .zone { top: calc(var(--nh) + 4px); bottom: 0; font-size: 22px; color: rgba(255, 255, 255, .85); }
+[data-theme="companion"] .num { font-size: min(calc((100cqh - 12px) * .6), calc(100cqw - 2 * var(--tw) - 60px)); }
+[data-theme="companion"] .num.w3 { font-size: min(calc((100cqh - 12px) * .6), calc((100cqw - 2 * var(--tw) - 60px) * .68)); }
+[data-theme="companion"] .zone { top: 0; bottom: 0; font-size: 22px; color: rgba(255, 255, 255, .85); }
 [data-theme="companion"] .zone.minus { padding-left: calc(var(--tw) + 10px); }
 [data-theme="companion"] .zone.plus { padding-right: calc(var(--tw) + 10px); }
 [data-theme="companion"] .actions { display: contents; }
@@ -357,8 +355,6 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 @container (max-width: 280px) {
   [data-theme="companion"] .actions button { font-size: 10.5px; letter-spacing: .02em; }
   [data-theme="companion"] .actions svg { width: 17px; height: 17px; }
-  [data-theme="companion"] .name { font-size: 14px; letter-spacing: .06em; }
-  [data-theme="companion"] .head .sub { font-size: 10.5px; }
 }
 [data-theme="companion"] .hub { left: 0; right: 0; bottom: 0; height: calc(52px + env(safe-area-inset-bottom));
   padding: 0 12px env(safe-area-inset-bottom); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; background: #000; }
@@ -388,7 +384,6 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 [data-theme="minimal"] .head { position: absolute; left: 20%; right: 20%; bottom: 9px; margin: 0 auto; width: max-content; max-width: 60%;
   padding: 4px 8px; pointer-events: auto; cursor: pointer; z-index: 3; text-shadow: 0 1px 6px rgba(0, 0, 0, .9); }
 [data-theme="minimal"] .name { font-size: 12px; font-weight: 600; line-height: 1; letter-spacing: .16em; color: rgba(255, 255, 255, .88); }
-[data-theme="minimal"] .head .sub { display: none; }
 [data-theme="minimal"] .badges { position: absolute; bottom: 10px; left: 8px; max-width: 32%; z-index: 2; }
 [data-theme="minimal"] .badges > span { height: 22px; padding: 0 8px 0 6px; border-radius: 999px; background: rgba(0, 0, 0, .58);
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font-size: 13px; letter-spacing: .04em; }

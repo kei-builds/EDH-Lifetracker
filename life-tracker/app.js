@@ -927,8 +927,6 @@ function buildFace(face, p) {
   if (p === 0) name.appendChild(el('span', 'you', 'You · '));
   name.append(shortName(pl.name));
   head.appendChild(name);
-  const full = halves(pl.name).length > 1 ? halves(pl.name).join(' & ') : pl.name;
-  if (G().named[p]) head.appendChild(el('div', 'sub', (p === 0 ? 'You · ' : '') + full));
   const badges = el('div', 'badges');
   const chip = (name, label, value, cls) => {
     const c = withIcon('span', cls, name, label);

@@ -9,7 +9,7 @@ a confirmation.
 - `ng-home` shows the home screen with New game, the sync status line and Settings.
 - `ng-setup` fills the setup screen and starts a game whose panels show the chosen life and names.
 - `ng-prefs` remembers life, player count and layout for the next setup.
-- `ng-look` starts the table in Companion (tiles always showing) or Minimal (tiles on demand, hide after 4 s).
+- `ng-look` starts the table in Companion (tiles always showing, the name along the bottom of a full-height life box) or Minimal (tiles on demand, hide after 4 s).
 - `ng-keep` leaves for home with the game kept and resumes it.
 - `ng-discard` starts a new game over a kept one after a confirmation card.
 - `ng-placeholders` names blank seats You, Player 2, Player 3 and so on when fewer than 4 players.
