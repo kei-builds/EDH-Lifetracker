@@ -333,16 +333,24 @@ async function resolveName(n) {
   return sf ? { name: sf.name, letters: sf.letters, known: false } : { name: n, letters: null, known: false };
 }
 
+// Name suggestions: Scryfall's autocomplete answers at most 20 names. When an answer had fewer, every longer query that
+// starts with the same letters is a subset of it, so those are filtered here instead of asked for again.
 let acTimer = null;
+let acLast = null;
 function autocomplete(e) {
   const q = e.target.value.trim();
   clearTimeout(acTimer);
-  if (q.length < 3 || !navigator.onLine) return;
+  if (q.length < 3) return;
+  const suggest = names => fillList('cmdList', [...new Set(names.concat(store.lists.commanders.map(c => c[0])))]);
+  const lq = q.toLowerCase();
+  if (acLast && acLast.complete && lq.startsWith(acLast.q)) { suggest(acLast.names.filter(n => n.toLowerCase().includes(lq))); return; }
+  if (!navigator.onLine) return;
   acTimer = setTimeout(async () => {
     try {
       const res = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      fillList('cmdList', [...new Set((data.data || []).concat(store.lists.commanders.map(c => c[0])))]);
+      const names = (await res.json()).data || [];
+      acLast = { q: lq, names, complete: names.length < 20 };
+      suggest(names);
     } catch (err) { /* offline: keep the known list */ }
   }, 250);
 }

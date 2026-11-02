@@ -155,6 +155,7 @@ label.check input { width: 22px; height: 22px; accent-color: var(--accent); }
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.six { grid-template-columns: repeat(6, 1fr); }
 .grid:not(.two):not(.six) .ctr b { font-size: 44px; min-width: 44px; }
+.grid:not(.two):not(.six) .ctr span { font-size: 23px; letter-spacing: .1em; }
 .ctr { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 0; border: 1px solid var(--hair);
   border-radius: 7px; background: rgba(255, 255, 255, .03); padding: 0 2px; }
 .ctr span { flex: 1; font-family: var(--cond); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase;

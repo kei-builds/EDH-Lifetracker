@@ -48,7 +48,7 @@ The sync endpoint is its own Apps Script project, separate from the game form, s
   - Each seat's commander. Seats go left around the table from you, which is also turn order, so the seat next on your left is Opponent 1.
   - For partner commanders, turn on **Partner** beside the seat and type the second commander in the field that appears under it. The game stores the pair as "First // Second", the same as typing both names that way.
   - Who goes first, or let the app pick at random.
-  - Names are matched to your sheet first, then looked up on Scryfall by exact name.
+  - Names are matched to your sheet first, then looked up on Scryfall by exact name. Panels show the part before the comma.
   - Only 4-player games with every commander named are sent to your sheet. Other games are just a life counter.
 - **Art:** each panel shows its commander's art from Scryfall, split in two for partners, over a tint of the commander's color identity. Art loads in the background after the game starts, so the tint shows first and stays if you're offline. Art you've already seen is kept for offline use. Turn it off in Settings.
 - **Look:** pick it in setup or under **Settings → Look**. It changes only how the table looks, never what it records.
