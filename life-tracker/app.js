@@ -528,8 +528,15 @@ const alive = () => G().players.map((p, i) => i).filter(i => !G().players[i].out
 // event log's length and leave out the art, so they stay small.
 const UNDO_MAX = 80;
 let repeating = false;  // true while a press-and-hold repeats, so the whole hold is one undo step
-function snapshot() {
+// Taps on the same control within the delta float's window are one undo step, so Undo takes back what the float
+// showed. A held button already is: its repeats take no snapshot. Anything without a key is always its own step.
+const BURST = 1500;
+let lastSnap = { key: null, at: 0 };
+function snapshot(key) {
   if (repeating) return;
+  const now = Date.now();
+  if (key && key === lastSnap.key && now - lastSnap.at < BURST) { lastSnap.at = now; return; }
+  lastSnap = { key: key || null, at: now };
   const g = G();
   store.undo.push(JSON.stringify(Object.assign({}, g, {
     events: g.events.length,
@@ -541,6 +548,7 @@ function undo() {
   if (!store.undo.length) return false;
   const g = G();
   const prev = JSON.parse(store.undo.pop());
+  lastSnap = { key: null, at: 0 };
   prev.events = g.events.slice(0, prev.events);
   prev.players.forEach((pl, i) => { pl.art = g.players[i] && g.players[i].art; });
   store.game = prev;
@@ -552,7 +560,7 @@ function logEvent(e) {
 function commit() { persist(); renderTable(); }
 
 function changeLife(p, d) {
-  snapshot();
+  snapshot(`life ${p}`);
   G().players[p].life += d;
   logEvent({ p, life: d });
   checkOut(p, 'life');
@@ -562,7 +570,7 @@ function changeLife(p, d) {
 function changeCmd(target, from, half, d) {
   const pl = G().players[target];
   if (pl.cmd[from][half] + d < 0) return;
-  snapshot();
+  snapshot(`cmd ${target} ${from} ${half}`);
   pl.cmd[from][half] += d;
   pl.life -= d;
   logEvent({ p: target, cmd: d, from, half });
@@ -573,7 +581,7 @@ function changeCmd(target, from, half, d) {
 function changeCounter(p, key, d) {
   const pl = G().players[p];
   if (pl.counters[key] + d < 0) return;
-  snapshot();
+  snapshot(`counter ${p} ${key}`);
   pl.counters[key] += d;
   logEvent({ p, [key]: d });
   if (key === 'poison') checkOut(p, 'poison');
