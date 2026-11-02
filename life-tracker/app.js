@@ -15,19 +15,19 @@ const $ = id => document.getElementById(id);
  * panel is turned so it reads upright from their side: 0 bottom, 90 left edge, 180 top, 270 right edge.
  */
 const LAYOUTS = {
-  1: { cols: '1fr', rows: '1fr', areas: '"a"', seats: [['a', 0, 'You']] },
-  2: { cols: '1fr', rows: '1fr 1fr', areas: '"b" "a"', seats: [['a', 0, 'You'], ['b', 180, 'Across']] },
+  1: { cols: '1fr', rows: '1fr', areas: '"a"', seats: [['a', 0]] },
+  2: { cols: '1fr', rows: '1fr 1fr', areas: '"b" "a"', seats: [['a', 0], ['b', 180]] },
   3: { cols: '1fr 1fr', rows: '1.5fr 1fr', areas: '"b c" "a a"',
-    seats: [['a', 0, 'You'], ['b', 90, 'Left'], ['c', 270, 'Right']] },
+    seats: [['a', 0], ['b', 90], ['c', 270]] },
   '4ends': { cols: '1fr 1fr', rows: '1fr 1.5fr 1fr', areas: '"c c" "b d" "a a"',
-    seats: [['a', 0, 'You'], ['b', 90, 'Left'], ['c', 180, 'Across'], ['d', 270, 'Right']] },
+    seats: [['a', 0], ['b', 90], ['c', 180], ['d', 270]] },
   '4sides': { cols: '1fr 1fr', rows: '1fr 1fr', areas: '"b c" "a d"',
-    seats: [['a', 90, 'You'], ['b', 90, 'Next to you'], ['c', 270, 'Across, far end'], ['d', 270, 'Across from you']] },
+    seats: [['a', 90], ['b', 90], ['c', 270], ['d', 270]] },
   5: { cols: '1fr 1fr', rows: '1fr 1fr 1fr', areas: '"c d" "b e" "a a"',
-    seats: [['a', 0, 'You'], ['b', 90, 'Left, near'], ['c', 90, 'Left, far'], ['d', 270, 'Right, far'], ['e', 270, 'Right, near']] },
+    seats: [['a', 0], ['b', 90], ['c', 90], ['d', 270], ['e', 270]] },
   6: { cols: '1fr 1fr', rows: '0.85fr 1fr 1fr 0.85fr', areas: '"d d" "c e" "b f" "a a"',
-    seats: [['a', 0, 'You'], ['b', 90, 'Left, near'], ['c', 90, 'Left, far'], ['d', 180, 'Across'],
-      ['e', 270, 'Right, far'], ['f', 270, 'Right, near']] },
+    seats: [['a', 0], ['b', 90], ['c', 90], ['d', 180],
+      ['e', 270], ['f', 270]] },
 };
 const layoutKey = (n, style) => (n === 4 ? `4${style}` : String(n));
 
@@ -365,8 +365,8 @@ function renderSeats() {
   wrap.innerHTML = '';
   seats.forEach((s, i) => {
     const lab = el('label');
-    lab.textContent = i === 0 ? 'Your deck' : `${s[2]}`;
-    if (i > 0 && n === 4) lab.appendChild(el('small', null, ` · Opponent ${i}`));
+    // Seats are numbered in turn order, clockwise from you; where each one sits follows from that.
+    lab.textContent = i === 0 ? 'Your deck' : `Opponent ${i}`;
     const input = el('input');
     input.id = `seat${i}`;
     input.autocomplete = 'off';
@@ -395,7 +395,7 @@ function renderSeats() {
     seat.append(input, tog, partner);
     wrap.append(lab, seat);
   });
-  const firstOpts = seats.map((s, i) => ({ value: String(i), label: i === 0 ? 'You' : s[2] }));
+  const firstOpts = seats.map((s, i) => ({ value: String(i), label: i === 0 ? 'You' : `Opponent ${i}` }));
   seg('first', firstOpts, picked.first && Number(picked.first) < n ? picked.first : '');
   $('syncNote').textContent = n === 4 ? '' : 'Only 4-player games are sent to your sheet. This one is just for counting life.';
 }
