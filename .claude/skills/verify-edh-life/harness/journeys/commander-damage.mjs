@@ -89,6 +89,18 @@ export default async ({ page, app, evidence, assert }) => {
   await app.$('dmgDone').tap();
   assert.equal(await app.panel(0).locator('.a-damage .vals .v').count(), 4, 'damage from your own commander makes a fourth row');
   assert.ok(await inside(0, 'damage'), 'four rows still fit inside the tile on a phone with bars');
+  const initials = p => app.panel(p).locator('.a-damage .vals .v i').allTextContents();
+  assert.deepEqual(await initials(0), ['A', 'K', 'Y', 'E'], 'rows run own commander first, then clockwise from the left');
+  await app.openTool(2, 'damage');
+  for (const p of [3, 0, 1]) await plus(p).tap();
+  await app.$('dmgDone').tap();
+  assert.deepEqual(await initials(2), ['E', 'A', 'K'], 'on another seat the same rule starts from that seat');
+  const rightEdges = await app.panel(0).locator('.a-damage').evaluate(tile => {
+    const r = [...tile.querySelectorAll('.vals .n')].map(n => n.getBoundingClientRect());
+    const rot = tile.closest('.panel').className.match(/r(\d+)/)[1];
+    return r.map(b => Math.round({ 0: b.right, 180: b.left, 90: b.bottom, 270: b.top }[rot]));
+  });
+  assert.ok(rightEdges.every(x => Math.abs(x - rightEdges[0]) <= 1), `the numbers line up on their right edge (${rightEdges})`);
   await evidence.shot('four-player-tiles');
   evidence.note('four players at 360x704 with three damage rows and two counter rows on You');
 };

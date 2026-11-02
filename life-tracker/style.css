@@ -351,9 +351,13 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 [data-theme="companion"] .actions :is(.a-tax, .a-mana):has(> .vals) > svg { display: none; }
 [data-theme="companion"] .actions .vals { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px 7px; max-width: 100%; }
 /* Rows and their gaps scale with the face's height, so four rows fit the short side panels and fill the long end ones. */
-[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals { order: 1; margin: clamp(3px, 2cqh, 8px) 0 2px; flex-direction: column;
-  flex-wrap: nowrap; gap: clamp(2px, 2cqh, 9px); min-height: 0; overflow: hidden; }
-[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals .v { font-size: clamp(15px, 9cqh, 19px); gap: 5px; }
+/* The rows are a two-column table, badge then number, so the numbers line up on their right edge. */
+[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals { order: 1; margin: clamp(3px, 2cqh, 8px) 0 2px; display: grid;
+  grid-template-columns: auto auto; column-gap: 5px; row-gap: clamp(2px, 2cqh, 9px); justify-content: center; align-self: center;
+  max-width: 100%; min-height: 0; overflow: hidden; }
+[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals .v { display: grid; grid-template-columns: subgrid; grid-column: span 2; align-items: center;
+  font-size: clamp(15px, 9cqh, 19px); }
+[data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals .n { justify-self: end; font-weight: inherit; }
 [data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals i { width: clamp(15px, 9cqh, 18px); height: clamp(15px, 9cqh, 18px);
   font-size: clamp(10px, 6cqh, 12px); line-height: clamp(15px, 9cqh, 18px); }
 [data-theme="companion"] .actions :is(.a-damage, .a-counters) .vals svg { width: clamp(15px, 9cqh, 19px); height: clamp(15px, 9cqh, 19px); }

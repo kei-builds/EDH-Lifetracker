@@ -11,7 +11,7 @@ and 21 from a single commander knocks them out.
 - `cmd-face` turns every panel to face the target.
 - `cmd-count` adds damage from another player's commander and lowers the target's life by the same amount.
 - `cmd-done` leaves damage mode with Done in the hub or the back chevron on the target panel.
-- `cmd-tile` lists each source's total on the target's Damage tile, in Companion as rows under the tile's icon and label, which start where the Tax tile's do. The tile is the Tax tile's size while empty and grows with its rows; four rows, your own commander's included, fit on every panel.
+- `cmd-tile` lists each source's total on the target's Damage tile, in Companion as rows under the tile's icon and label, which start where the Tax tile's do. The tile is the Tax tile's size while empty and grows with its rows; four rows, your own commander's included, fit on every panel. Rows are in one order on every panel, the player's own commander first, then each opponent clockwise from their left, with the numbers aligned on their right edge.
 - `cmd-lethal` knocks the target out at 21 from one commander, with cause commander damage.
 
 ## How to get to it (user POV)

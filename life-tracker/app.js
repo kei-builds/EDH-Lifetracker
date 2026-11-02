@@ -767,14 +767,19 @@ let swipedAt = 0;
   board.addEventListener('click', e => { if (Date.now() - swipedAt < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
 })();
 
+// Damage rows read the same on every panel: the player's own commander first, then each opponent clockwise from
+// their left, which is turn order from their seat.
+const fromSeat = (g, p) => g.players.map((_, k) => (p + k) % g.n);
+
 function infoCard(p) {
   const g = G();
   const pl = g.players[p];
   const card = el('div', 'sheet info');
   card.appendChild(el('h3', null, 'Commander damage'));
   const rows = el('div', 'infoRows');
-  g.players.forEach((src, s) => {
+  fromSeat(g, p).forEach(s => {
     if (s === p) return;
+    const src = g.players[s];
     const [a, b] = pl.cmd[s];
     const row = el('div', 'infoRow' + (a >= 21 || b >= 21 ? ' lethal' : a >= 15 || b >= 15 ? ' warn' : ''));
     const who = el('i', null, g.named[s] ? shortName(src.name)[0].toUpperCase() : String(s + 1));
@@ -1013,12 +1018,13 @@ function tileValues(p, kind) {
       vals.appendChild(v);
     });
   } else if (kind === 'damage') {
-    pl.cmd.forEach(([a, b], s) => {
+    fromSeat(g, p).forEach(s => {
+      const [a, b] = pl.cmd[s];
       if (!a && !b) return;
       const who = el('i', null, g.named[s] ? shortName(g.players[s].name)[0].toUpperCase() : String(s + 1));
       who.style.background = tint(g.players[s].letters);
       const v = el('span', a >= 21 || b >= 21 ? 'v lethal' : a >= 15 || b >= 15 ? 'v warn' : 'v');
-      v.append(who, String(a + b));
+      v.append(who, el('b', 'n', String(a + b)));
       vals.appendChild(v);
     });
   } else if (kind === 'counters') {
@@ -1027,7 +1033,7 @@ function tileValues(p, kind) {
       const n = pl.counters[k];
       const v = el('span', k === 'poison' && n >= 10 ? 'v lethal' : k === 'poison' && n >= 7 ? 'v warn' : 'v');
       v.innerHTML = iconSvg(icon);
-      v.append(String(pl.counters[k]));
+      v.append(el('b', 'n', String(n)));
       vals.appendChild(v);
     });
   }
