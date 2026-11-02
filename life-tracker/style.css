@@ -153,6 +153,11 @@ label.check input { width: 22px; height: 22px; accent-color: var(--accent); }
 .grid { flex: 1; min-height: 0; display: grid; gap: 5px; }
 /* minmax(0, …) keeps the columns even, so a long name ellipsizes instead of pushing the other column off the sheet. */
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Partner tax: each commander's name sits above its counter, so the full name has the whole tile's width. */
+.grid.tax.two .ctr { flex-wrap: wrap; align-content: center; padding: 4px 2px; }
+.grid.tax.two .ctr span { flex: 1 0 100%; font-size: 15px; letter-spacing: .08em; }
+.grid.tax.two .ctr button { height: 40px; }
+.grid.tax.two .ctr b { font-size: 30px; }
 .grid.six { grid-template-columns: repeat(6, 1fr); }
 .grid:not(.two):not(.six) .ctr b { font-size: 44px; min-width: 44px; }
 .grid:not(.two):not(.six) .ctr span { font-size: 23px; letter-spacing: .1em; }

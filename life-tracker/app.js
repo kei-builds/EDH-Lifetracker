@@ -865,7 +865,7 @@ function sheet(p, kind) {
   if (kind === 'tax') {
     s.appendChild(el('h3', null, 'Commander tax'));
     const split = pl.partner || pl.tax[1] > 0;
-    const grid = el('div', 'grid' + (split ? ' two' : ''));
+    const grid = el('div', 'grid tax' + (split ? ' two' : ''));
     const names = split ? commanderNames(pl) : [shortName(pl.name)];
     names.forEach((nm, h) => grid.appendChild(counter(nm, pl.tax[h], () => changeTax(p, h, -2), () => changeTax(p, h, 2))));
     s.appendChild(grid);
