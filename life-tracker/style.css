@@ -70,6 +70,12 @@ label.check input { width: 22px; height: 22px; accent-color: var(--accent); }
   font-size: 15px !important; text-transform: uppercase; letter-spacing: .05em; }
 .mini { display: grid; gap: 2px; width: 54px; height: 70px; }
 .mini i { background: transparent; border: 1.5px solid currentColor; opacity: .9; }
+/* Your seat: the chosen layout's cells, big enough to tap, with "You" turned the way that panel will face. */
+.seatPick { display: grid; gap: 4px; width: 132px; height: 168px; margin: 0 auto; }
+.seatPick button { min-width: 0; min-height: 0; padding: 0; border: 1.5px solid var(--accent); border-radius: 5px; background: rgba(14, 14, 36, .75);
+  display: flex; align-items: center; justify-content: center; font-family: var(--cond); font-weight: 700; font-size: 15px;
+  text-transform: uppercase; letter-spacing: .06em; }
+.seatPick button.on { background: var(--accent); }
 
 /* A seat in setup: the commander with its Partner switch beside it, and the partner's name under it while that is on. */
 .seat { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 4px; align-items: center; }

@@ -33,6 +33,13 @@ const layoutKey = (n, style) => (n === 4 ? `4${style}` : String(n));
 
 // The table's looks. style.css keys off html[data-theme]; the one behavior a look sets is whether each
 // panel's tools are always showing or appear on demand.
+// Where player p's panel is drawn: you pick your cell in setup (or move it from the menu), and the others follow
+// clockwise in turn order. Games saved before this sit at cell 0.
+function cellOf(g, p) {
+  const seats = LAYOUTS[g.layout].seats;
+  return seats[((g.seat || 0) + p) % seats.length];
+}
+
 const THEMES = {
   companion: { label: 'Companion', toolsOnDemand: false },
   minimal: { label: 'Minimal', toolsOnDemand: true },
@@ -353,9 +360,38 @@ function currentLayout() {
   return LAYOUTS[layoutKey(Number(picked.playerCount), picked.layout)];
 }
 
+// The seat picker: the layout's cells drawn like the Layout diagrams but tappable, with "You" in the chosen cell turned
+// the way that panel will face. The choice is kept per layout.
+function renderSeatPick(key) {
+  const l = LAYOUTS[key];
+  if (!(key in picked.seatBy)) picked.seatBy[key] = Math.min((store.prefs.seat || {})[key] || 0, l.seats.length - 1);
+  $('seatWrap').classList.toggle('hidden', l.seats.length < 2);
+  const pick = $('seatPick');
+  pick.innerHTML = '';
+  pick.style.gridTemplateColumns = l.cols;
+  pick.style.gridTemplateRows = l.rows;
+  pick.style.gridTemplateAreas = l.areas;
+  l.seats.forEach(([area, rot], k) => {
+    const on = k === picked.seatBy[key];
+    const b = el('button', on ? 'on' : null);
+    b.type = 'button';
+    b.style.gridArea = area;
+    b.setAttribute('aria-label', `Seat ${k + 1}`);
+    b.setAttribute('aria-pressed', on);
+    if (on) {
+      const you = el('span', null, 'You');
+      you.style.transform = `rotate(${rot === 270 ? -90 : rot}deg)`;
+      b.appendChild(you);
+    }
+    b.onclick = () => { picked.seatBy[key] = k; renderSeatPick(key); };
+    pick.appendChild(b);
+  });
+}
+
 function renderSeats() {
   const n = Number(picked.playerCount);
   $('layoutWrap').classList.toggle('hidden', n !== 4);
+  renderSeatPick(layoutKey(n, picked.layout));
   const seats = currentLayout().seats;
   // Names and Partner switches carry over to the seats that remain when the player count or layout changes.
   const old = {};
@@ -413,6 +449,7 @@ function openSetup() {
   lookRow('look');
   picked.first = '';
   picked.partner = [];
+  picked.seatBy = {};
   renderSeats();
   msg('setupMsg', '');
   show('setup');
@@ -453,13 +490,15 @@ $('startGame').onclick = async () => {
     return;
   }
   const life = Number(picked.startLife);
-  Object.assign(store.prefs, { life: picked.startLife, players: picked.playerCount, layout: picked.layout || 'ends' });
+  const seat = picked.seatBy[key] || 0;
+  Object.assign(store.prefs, { life: picked.startLife, players: picked.playerCount, layout: picked.layout || 'ends',
+    seat: Object.assign({}, store.prefs.seat, { [key]: seat }) });
   const colors = {};
   resolved.forEach(r => { if (!r.known && r.letters != null) colors[r.name] = r.letters; });
   const first = Number(picked.first);
   store.game = {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random(),
-    n, layout: key, life0: life, colors, first, active: first, round: 1, started: Date.now(), events: [], storm: 0,
+    n, layout: key, seat, life0: life, colors, first, active: first, round: 1, started: Date.now(), events: [], storm: 0,
     players: resolved.map((r, i) => newPlayer(r.name || (i === 0 ? 'You' : `Player ${i + 1}`), r.letters, life, n)),
     named: resolved.map(r => !!r.name),
     dmgTarget: null,
@@ -676,10 +715,10 @@ function renderTable() {
   board.innerHTML = '';
   g.players.forEach((pl, p) => {
     // In damage mode every panel turns to face the target, who enters the damage from their seat.
-    const rot = layout.seats[g.dmgTarget != null ? g.dmgTarget : p][1];
+    const rot = cellOf(g, g.dmgTarget != null ? g.dmgTarget : p)[1];
     const panel = el('div', `panel r${rot}` + (g.active === p && !pl.out ? ' active' : ''));
     panel.classList.toggle('tools', !onDemand || ui[p].tools);
-    panel.style.gridArea = layout.seats[p][0];
+    panel.style.gridArea = cellOf(g, p)[0];
     const face = el('div', 'face');
     face.appendChild(backdrop(pl));
     if (g.dmgTarget != null) face.appendChild(damageView(p));
@@ -696,12 +735,13 @@ function renderTable() {
     // The middle of the edge where the target's panel meets the table (its face's top edge), so a look can put the
     // hub on that seam, turned to face the target like every panel.
     const r = board.children[g.dmgTarget].getBoundingClientRect();
-    const rot = layout.seats[g.dmgTarget][1];
+    const rot = cellOf(g, g.dmgTarget)[1];
     const [fx, fy] = { 0: [0.5, 0], 90: [1, 0.5], 180: [0.5, 1], 270: [0, 0.5] }[rot];
     hub.style.setProperty('--dmg-x', `${r.left + r.width * fx}px`);
     hub.style.setProperty('--dmg-y', `${r.top + r.height * fy}px`);
     hub.style.setProperty('--dmg-rot', `${rot}deg`);
   }
+  $('moveSeat').classList.toggle('hidden', g.n < 2);
   const over = alive().length <= 1 && g.n > 1;
   $('pass').classList.toggle('over', over);
   $('turnLabel').replaceChildren(...(over ? ['Finish'] : [el('span', 'l', 'Turn '), String(g.round)]));
@@ -868,7 +908,7 @@ function sheet(p, kind) {
 // The Radiation token, turned to face whoever opened it like their panel. Its rules text always shows; the image needs
 // Scryfall once, and its URL is kept so the service worker's art cache can show it offline after that.
 async function showRad(p) {
-  $('radInfo').className = `radInfo r${LAYOUTS[G().layout].seats[p][1]}`;
+  $('radInfo').className = `radInfo r${cellOf(G(), p)[1]}`;
   if (!store.radArt) {
     const card = await scryfall('tpip/22').catch(() => null);
     if (card && card.image_uris) { store.radArt = card.image_uris.normal; persist(); }
@@ -934,6 +974,14 @@ $('resetLife').onclick = async () => {
   Object.assign(g, { id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()), active: g.first, round: 1,
     started: Date.now(), events: [], storm: 0, dmgTarget: null });
   store.undo = [];
+  $('menu').classList.add('hidden');
+  commit();
+};
+// Steps your panel one cell clockwise, for a seat noticed after the game started. Not an undo step, like the look.
+$('moveSeat').onclick = () => {
+  const g = G();
+  g.seat = ((g.seat || 0) + 1) % g.n;
+  store.prefs.seat = Object.assign({}, store.prefs.seat, { [g.layout]: g.seat });
   $('menu').classList.add('hidden');
   commit();
 };

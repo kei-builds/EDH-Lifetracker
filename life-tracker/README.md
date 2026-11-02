@@ -43,6 +43,7 @@ The sync endpoint is its own Apps Script project, separate from the game form, s
 
 - **Setup:**
   - Starting life (20–60), players (1–6), and for 4 players the layout: two per side, or one at each end.
+  - **Your seat:** tap the cell of the table you're sitting at. The others follow clockwise in turn order, each panel facing its own edge of the phone, so the phone can lie whichever way the table needs. The app remembers your pick per layout. **Options → Move my seat** steps it one cell clockwise during a game.
   - The look, Companion or Minimal. It's the same setting as **Settings → Look**.
   - Each seat's commander. Seats go left around the table from you, which is also turn order, so the seat next on your left is Opponent 1.
   - For partner commanders, turn on **Partner** beside the seat and type the second commander in the field that appears under it. The game stores the pair as "First // Second", the same as typing both names that way.
@@ -61,7 +62,7 @@ The sync endpoint is its own Apps Script project, separate from the game form, s
   - **Mana:** **Storm** across the top counts the spells everyone has cast this turn. Tap it to add 1. It goes back to 0 when the turn passes. Below it is a floating mana pool (W U B R G C) with an Empty pool button. Storm taps and mana changes aren't undo steps.
   - **Counters:** poison (10 knocks a player out), energy, experience and rad, each with its icon, plus Concede. Tap **Rad** to see what rad counters do: the Radiation token from Scryfall, with its rules text under it. After the first look the token shows offline too, and the rules text always shows.
   - The turn button passes the turn. The white outline shows whose turn it is, and the turn count goes up when play gets back to whoever went first.
-  - **Undo** reverses the last change. **Options** opens the menu: finish early, restart with the same players, go home and keep the game, or abandon it.
+  - **Undo** reverses the last change. **Options** opens the menu: finish early, restart with the same players, move your seat one cell clockwise, go home and keep the game, or abandon it.
 - **After the game:** winner, how it ended, turns and first elimination are pre-filled from the game. Commander damage, poison and concessions set the victory type; damage from life loss you pick yourself. Add notes. Pod, power and bracket are under Game details, pre-filled from your last game. Save, and it syncs.
 
 On the sheet, synced games show Source = "Life Tracker". A **Tracker Log** tab, created on the first sync, stores each game's start and end time, length in minutes, the eliminations, and the full event history.
