@@ -52,7 +52,7 @@ textarea { min-height: 72px; resize: vertical; }
 .secondary.small { min-height: 40px; margin-top: 10px; font-size: 15px; }
 .link { display: block; margin: 22px auto 0; border: 0; background: none; color: #b9b9ff; font-family: var(--cond);
   font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: .08em; }
-.card { margin-top: 24px; padding: 14px; border: 1px solid var(--hair); border-radius: 8px; background: rgba(0, 0, 0, .35); text-align: center; }
+.card { max-width: 280px; margin: 24px auto 0; padding: 14px; border: 1px solid var(--hair); border-radius: 8px; background: rgba(0, 0, 0, .35); text-align: center; }
 .msg { margin-top: 12px; font-size: 14px; min-height: 1em; color: var(--muted); text-align: center; }
 .msg.error { color: var(--danger); }
 details { margin-top: 20px; border: 1px solid var(--hair); border-radius: 8px; padding: 12px 14px; background: rgba(0, 0, 0, .35); }

@@ -4,6 +4,8 @@ const NAMES = ["Atraxa, Praetors' Voice", 'Krenko, Mob Boss'];
 export default async ({ page, app, evidence, assert }) => {
   assert.equal(await app.screen(), 'home');
   assert.match(await app.$('syncStatus').textContent(), /Add your sync URL/);
+  const [card, button] = await Promise.all([app.$('syncCard').boundingBox(), app.$('newGame').boundingBox()]);
+  assert.ok(Math.abs(card.width - button.width) < 1 && Math.abs(card.x - button.x) < 1, 'the sync card is as wide as the New game button and lines up with it');
   await evidence.shot('home');
 
   const suggestions = async () => {
