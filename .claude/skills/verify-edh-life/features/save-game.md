@@ -9,8 +9,9 @@ eliminations and the whole event log, clears the game from the phone, and the ho
 - `sg-finish-screen` opens the end screen with `Game details` showing, the turn count and the first elimination
   pre-filled from the game, and the button reading `Save game`.
 - `sg-details-required` refuses to save until the pod, power and date under Game details are filled.
+- `sg-sol-rings` asks how many turn 1 Sol Rings there were (0 to 4, 0 by default) and, only when there was one, whether a Sol Ring player won.
 - `sg-queue` writes one entry to `store.queue` with `id`, `setup` (date, pod, power, bracket, deck, opps, seat),
-  `winner`, `victory`, `turns`, `elim`, `notes`, `eliminations` and `events`.
+  `winner`, `victory`, `turns`, `elim`, `sol`, `solWin`, `notes`, `eliminations` and `events`.
 - `sg-cleared` leaves `store.game` null and shows the home screen with `Game saved`.
 - `sg-home-count` counts the saved game on the home screen when no sync URL is set.
 

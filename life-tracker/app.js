@@ -1209,6 +1209,10 @@ function openFinish() {
   if (g.n > 1) opts.push({ value: 'unknown', label: 'Not sure which opponent' });
   seg('winner', opts, left.length === 1 ? String(left[0]) : '');
   seg('victory', VICTORIES, lastOut && left.length === 1 ? (CAUSE_VICTORY[lastOut.out] || '') : '');
+  // Turn 1 Sol Rings are not tracked at the table, so they are asked here; the win question only matters once there was one.
+  seg('sol', ['0', '1', '2', '3', '4'], '0', v => $('solWinWrap').classList.toggle('hidden', v === '0'));
+  seg('solWin', ['Yes', 'No'], '');
+  $('solWinWrap').classList.add('hidden');
   $('turns').value = g.round;
   $('elim').value = outs.length ? Math.min(...outs.map(pl => pl.out.turn)) : '';
   $('notes').value = '';
@@ -1252,7 +1256,8 @@ $('saveGame').onclick = () => {
         deck: g.players[0].name, opps: g.players.slice(1).map(pl => pl.name), seat: String(mySeat) },
       colors: g.colors,
       winner: w === 'unknown' ? 'Unknown opponent' : w === '0' ? 'Me' : `Opponent ${w}`,
-      victory: picked.victory, turns: $('turns').value, elim: $('elim').value, sol: '', solWin: '',
+      victory: picked.victory, turns: $('turns').value, elim: $('elim').value,
+      sol: picked.sol, solWin: picked.sol !== '0' ? picked.solWin : '',
       notes: $('notes').value.trim(), started: g.started, ended: Date.now(),
       eliminations: g.players.filter(pl => pl.out).map(pl => ({ name: pl.name, turn: pl.out.turn, cause: CAUSE_LABEL[pl.out.cause] })),
       events: g.events,

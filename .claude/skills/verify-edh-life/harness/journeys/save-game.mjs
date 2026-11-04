@@ -28,6 +28,10 @@ export default async ({ page, app, evidence, assert }) => {
 
   await app.seg('winner', 'Krenko, Mob Boss').tap();
   await app.seg('victory', 'Combat Damage').tap();
+  assert.ok(await app.$('solWinWrap').evaluate(e => e.classList.contains('hidden')), 'with 0 turn 1 Sol Rings the win question stays hidden');
+  await app.seg('sol', '2').tap();
+  assert.ok(!(await app.$('solWinWrap').evaluate(e => e.classList.contains('hidden'))), 'picking a Sol Ring count asks whether such a player won');
+  await app.seg('solWin', 'Yes').tap();
   await app.$('notes').fill('Turn two Krenko');
   await app.$('saveGame').tap();
   assert.equal(await app.$('finishMsg').textContent(), 'Fill in the pod and power under Game details.');
@@ -64,6 +68,8 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal(q.victory, 'Combat Damage');
   assert.equal(q.turns, '1');
   assert.equal(q.elim, '1');
+  assert.equal(q.sol, '2', 'the turn 1 Sol Ring count goes to the sheet');
+  assert.equal(q.solWin, 'Yes', 'and whether a Sol Ring player won');
   assert.equal(q.notes, 'Turn two Krenko');
   assert.deepEqual(q.eliminations, [{ name: NAMES[3], turn: 1, cause: 'life' }]);
   assert.equal(q.events.length, 46, '45 life taps and one knockout make the event log');
