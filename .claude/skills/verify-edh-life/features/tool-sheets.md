@@ -8,7 +8,7 @@ energy, experience and rad, opens the rad reminder, and holds Concede. Nonzero v
 
 - `ts-tax` raises and lowers commander tax by 2 and shows the total on the Tax tile (a crown chip in Minimal), without the tile changing size.
 - `ts-storm` counts spells cast this turn and resets to 0 when the turn passes; Minimal shows a storm chip.
-- `ts-mana` counts each color of floating mana, shows the pool as pips on the Mana tile (a mana chip in Minimal), and Empty pool clears it.
+- `ts-mana` counts each color of floating mana under Scryfall's mana symbols (`https://svgs.scryfall.io/card-symbols/W.svg` and so on, cached by the service worker for offline use), shows the pool as symbol-and-count pips on the Mana tile (a mana chip in Minimal), and Empty pool clears it.
 - `ts-counters` raises and lowers poison, energy, experience and rad; the Counters tile lists nonzero ones, in Companion as rows under the tile's icon and label, which start where the Tax tile's do.
 - `ts-rad` opens the Radiation reminder with its rules text from the Rad name, and Close dismisses it.
 - `ts-poison-out` knocks a player out at 10 poison; Concede becomes a disabled Out.
@@ -29,7 +29,7 @@ Preconditions:
 - `plusIn(scope, n)` means `scope.locator('.ctr').nth(n).getByRole('button', { name: '+', exact: true })`.
 
 - **Tax.** `await app.openTool(0, 'tax')`; the sheet's `h3` reads `Commander tax`. Tap `plusIn(app.sheet(0))` twice: the counter reads `4` and `game.players[0].tax` is `[4, 0]`. `Done` closes the sheet and `app.panel(0).locator('.badges')` contains `4`.
-- **Storm and mana.** `await app.openTool(0, 'mana')`. Tap `app.sheet(0).locator('.storm')` twice: its `b` reads `2` and `game.storm` is 2. Tap `plusIn(app.sheet(0), 0)`: `players[0].mana.W` is 1. `Empty pool` sets it to 0. After `Done` the badges contain `2`.
+- **Storm and mana.** `await app.openTool(0, 'mana')`. The sheet's six `.ctr img.pip` have `alt` W U B R G C and `src` `https://svgs.scryfall.io/card-symbols/<letter>.svg`, and every one decodes (`img.decode()` resolves; the stub answers every symbol with a circle, and Scryfall's own SVGs have no intrinsic size, so `naturalWidth` is 0 even when loaded). Tap `app.sheet(0).locator('.storm')` twice: its `b` reads `2` and `game.storm` is 2. Tap `plusIn(app.sheet(0), 0)`: `players[0].mana.W` is 1. After `Done` the Mana tile's one `.v` holds an `img.pip` with the W symbol's `src`. `Empty pool` sets it to 0.
 - **Storm resets.** `await app.$('pass').tap()`: `game.storm` is 0 and `game.active` is 1.
 - **Undo the pass.** `await app.$('undo').tap()`: `game.storm` is 2 again and `game.active` is 0. Pass again before going on.
 - **Counters.** `await app.openTool(1, 'counters')`; `h3` reads `Counters`. Tap `plusIn(app.sheet(1), 0)` three times and `plusIn(app.sheet(1), 1)` once: `players[1].counters` has poison 3 and energy 1.

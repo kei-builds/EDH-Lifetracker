@@ -94,6 +94,9 @@ export async function routeScryfall(context, mode = process.env.EDH_SCRYFALL || 
     if (u.pathname === '/cards/tpip/22') return route.fulfill({ json: { object: 'card', name: 'Radiation', image_uris: { normal: PIXEL_PNG } } });
     return route.fulfill({ status: 404, json: { object: 'error', status: 404, details: 'stubbed' } });
   });
+  // The mana symbols the pips show: a plain circle stands in for each.
+  await context.route('https://svgs.scryfall.io/**', route => route.fulfill({ contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#ccc"/></svg>' }));
 }
 
 // What a journey drives the app through: real taps on the real controls, never internal setters.

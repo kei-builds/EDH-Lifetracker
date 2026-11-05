@@ -20,6 +20,11 @@ export default async ({ page, app, evidence, assert }) => {
   evidence.note('tax 4');
 
   await app.openTool(0, 'mana');
+  const symbol = c => `https://svgs.scryfall.io/card-symbols/${c}.svg`;
+  const pips = app.sheet(0).locator('.ctr img.pip');
+  assert.deepEqual(await pips.evaluateAll(es => es.map(e => [e.alt, e.src])), ['W', 'U', 'B', 'R', 'G', 'C'].map(c => [c, symbol(c)]),
+    'the six pool counters show Scryfall\'s mana symbols, in WUBRGC order');
+  assert.ok(await pips.evaluateAll(es => Promise.all(es.map(e => e.decode())).then(() => true, () => false)), 'and every symbol loaded');
   const storm = app.sheet(0).locator('.storm');
   await storm.tap();
   await storm.tap();
@@ -32,6 +37,7 @@ export default async ({ page, app, evidence, assert }) => {
   await app.sheet(0).getByRole('button', { name: 'Done' }).tap();
   assert.equal(await shown('.a-mana .vals .v').count(), 1, 'the Mana tile shows the one floating color');
   assert.equal(await shown('.a-mana .vals .v').textContent(), '1', 'with its count');
+  assert.equal(await shown('.a-mana .vals .v img.pip').getAttribute('src'), symbol('W'), 'behind the white mana symbol');
   await app.openTool(0, 'mana');
   await app.sheet(0).getByRole('button', { name: 'Empty pool' }).tap();
   assert.equal((await app.game()).players[0].mana.W, 0);

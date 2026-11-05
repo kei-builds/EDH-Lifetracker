@@ -10,7 +10,7 @@ and its commands are described in `../SKILL.md`.
   360x780 with touch. `localStorage` starts empty: no sync URL, no key, no lists, no game, Companion look, 40 life,
   4 players and the "one at each end" layout as the remembered preferences.
 - Scryfall is stubbed: every exact name resolves to a card of that name with green color identity and no art, name
-  suggestions echo what was typed, and the Radiation token has a 1x1 image. A sheet stand-in (`SHEET` in `lib.mjs`) is
+  suggestions echo what was typed, the Radiation token has a 1x1 image, and every mana symbol is a gray circle. A sheet stand-in (`SHEET` in `lib.mjs`) is
   routed too, with two decks and two commanders; it only matters once a journey connects to it in Settings.
 - `node .claude/skills/verify-edh-life/harness/edh.mjs doctor` is healthy.
 - Never drive an instance this run did not start, except deliberately through `EDH_VERIFY_URL`.

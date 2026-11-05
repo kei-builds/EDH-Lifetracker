@@ -6,6 +6,15 @@ const VICTORIES = ['Combat Damage', 'Non-Combat Damage', 'Commander Damage', 'Co
 const CAUSE_VICTORY = { cmd: 'Commander Damage', poison: 'Poison', concede: 'Concession' };
 const CAUSE_LABEL = { life: 'life', cmd: 'commander damage', poison: 'poison', concede: 'conceded' };
 const MANA = ['W', 'U', 'B', 'R', 'G', 'C'];
+// A mana symbol as Scryfall draws it, over the color so a pip still reads while the symbol loads or can't.
+function manaPip(c) {
+  const pip = el('img', 'pip');
+  pip.src = `https://svgs.scryfall.io/card-symbols/${c}.svg`;
+  pip.alt = c;
+  pip.draggable = false;
+  pip.style.background = `var(--${c})`;
+  return pip;
+}
 const COUNTERS = [['poison', 'Poison', 'biohazard'], ['energy', 'Energy', 'zap'], ['experience', 'Experience', 'experience'], ['rad', 'Rad', 'radiation']];
 const $ = id => document.getElementById(id);
 
@@ -1044,9 +1053,7 @@ function tileValues(p, kind) {
   } else if (kind === 'mana') {
     MANA.filter(c => pl.mana[c]).forEach(c => {
       const v = el('span', 'v');
-      const pip = el('i', 'pip');
-      pip.style.background = `var(--${c})`;
-      v.append(pip, String(pl.mana[c]));
+      v.append(manaPip(c), String(pl.mana[c]));
       vals.appendChild(v);
     });
   } else if (kind === 'damage') {
@@ -1095,9 +1102,7 @@ function sheet(p, kind) {
     s.appendChild(storm);
     const grid = el('div', 'grid six');
     MANA.forEach(c => {
-      const pip = el('i', 'pip');
-      pip.style.background = `var(--${c})`;
-      const ctr = counter('', pl.mana[c], () => changeMana(p, c, -1), () => changeMana(p, c, 1), pip);
+      const ctr = counter('', pl.mana[c], () => changeMana(p, c, -1), () => changeMana(p, c, 1), manaPip(c));
       ctr.classList.add('vert');
       grid.appendChild(ctr);
     });

@@ -187,7 +187,7 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 @container (max-width: 347px) {
   .ctrName .l { display: none; }
 }
-/* Mana tiles keep their dot 8px clear of the top edge; on short faces the + and − give up height before it does. */
+/* Mana tiles keep their symbol 8px clear of the top edge; on short faces the + and − give up height before it does. */
 .ctr.vert { flex-direction: column-reverse; justify-content: space-evenly; padding: 8px 0 4px; }
 /* Flex keeps the glyph centered once a short tile squeezes the button below its line height; a plain button top-aligns it. */
 .ctr.vert button { height: auto; min-height: 18px; min-width: 100%; display: flex; align-items: center; justify-content: center; }
@@ -204,7 +204,9 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
   .ctr.vert { padding-bottom: 2px; }
   .ctr.vert b { font-size: 22px; }
 }
-.pip { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex: none; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); }
+/* Mana pips are Scryfall's symbols, set off from the art by a shadow the way they are on a card. */
+.pip { width: 15px; height: 15px; border-radius: 50%; display: inline-block; flex: none; box-shadow: -1px 1px 0 rgba(0, 0, 0, .85); }
+.ctr.vert .pip { width: 22px; height: 22px; }
 /* The status card a sideways swipe flips a panel to: one row per opponent, then counters. A tap anywhere goes back. */
 .info { justify-content: center; gap: 4px; cursor: pointer; }
 /* A centered table whose columns are only as wide as the names and numbers need, so it stays compact on a wide,
@@ -349,7 +351,7 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 [data-theme="companion"] .actions :is(.a-damage, .a-counters):has(> .vals) { height: auto; max-height: 100%; }
 [data-theme="companion"] .a-tax .vals, [data-theme="companion"] .a-mana .vals { flex-wrap: nowrap; gap: 4px; }
 [data-theme="companion"] .a-tax .v, [data-theme="companion"] .a-mana .v { font-size: 15px; }
-[data-theme="companion"] .vals .pip { width: 11px; height: 11px; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); }
+[data-theme="companion"] .vals .pip { width: 13px; height: 13px; }
 [data-theme="companion"] .actions svg { width: 19px; height: 19px; stroke-width: 1.6; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
 /* Tax and Mana put the value where the icon was, as the official app does; Damage and Counters keep the icon so the
    tile's top reads the same with and without values. Each damage entry is the hitter's initial on a square of their
