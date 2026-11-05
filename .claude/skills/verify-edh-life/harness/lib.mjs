@@ -64,6 +64,9 @@ export async function launchBrowser(opts = {}) {
 // Scryfall is the app's only runtime network dependency. `stub` (default) answers any exact-name lookup with a card of
 // that name, green identity and no art, so setup is deterministic offline; `block` fails every request, which is how
 // the app behaves with no connection; `live` lets real requests through (slow, rate limited, needs network).
+// One adventure card answers like the real Scryfall: either face's name finds the card, named by both faces, and the
+// two-faced name itself finds nothing.
+export const ADVENTURE = { faces: ['Kellan, the Fae-Blooded', 'Birthright Boon'], name: 'Kellan, the Fae-Blooded // Birthright Boon', color_identity: ['R', 'W'] };
 const PIXEL_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 export async function routeScryfall(context, mode = process.env.EDH_SCRYFALL || 'stub') {
   if (mode === 'live') return;
@@ -71,8 +74,13 @@ export async function routeScryfall(context, mode = process.env.EDH_SCRYFALL || 
     if (mode === 'block') return route.abort('internetdisconnected');
     const u = new URL(route.request().url());
     const exact = u.searchParams.get('exact');
-    if (u.pathname === '/cards/named' && exact) return route.fulfill({ json: { object: 'card', name: exact, color_identity: ['G'] } });
-    // Typing in an opponent's seat asks for name suggestions; the typed text is the one suggestion.
+    const q = (u.searchParams.get('q') || '').toLowerCase();
+    if (u.pathname === '/cards/named' && exact && ADVENTURE.faces.some(f => f.toLowerCase() === exact.toLowerCase())) {
+      return route.fulfill({ json: { object: 'card', name: ADVENTURE.name, layout: 'adventure', color_identity: ADVENTURE.color_identity, card_faces: ADVENTURE.faces.map(name => ({ name })) } });
+    }
+    if (u.pathname === '/cards/named' && exact && exact !== ADVENTURE.name) return route.fulfill({ json: { object: 'card', name: exact, color_identity: ['G'] } });
+    // Typing in a seat asks for name suggestions: the typed text is the one suggestion, the adventure for its first letters.
+    if (u.pathname === '/cards/autocomplete' && ADVENTURE.name.toLowerCase().startsWith(q)) return route.fulfill({ json: { object: 'catalog', data: [ADVENTURE.name] } });
     if (u.pathname === '/cards/autocomplete') return route.fulfill({ json: { object: 'catalog', data: [u.searchParams.get('q') || ''] } });
     // The Radiation token the rad reminder shows; its image is a 1x1 PNG so the <img> path runs without the network.
     if (u.pathname === '/cards/tpip/22') return route.fulfill({ json: { object: 'card', name: 'Radiation', image_uris: { normal: PIXEL_PNG } } });

@@ -46,7 +46,7 @@ The sync endpoint is its own Apps Script project, separate from the game form, s
   - **Your seat:** tap the cell of the table you're sitting at. The others follow clockwise in turn order, each panel facing its own edge of the phone, so the phone can lie whichever way the table needs. The app remembers your pick per layout. **Options → Move my seat** steps it one cell clockwise during a game.
   - The look, Companion or Minimal. It's the same setting as **Settings → Look**.
   - Each seat's commander. Seats go left around the table from you, which is also turn order, so the seat next on your left is Opponent 1.
-  - For partner commanders, turn on **Partner** beside the seat and type the second commander in the field that appears under it. The game stores the pair as "First // Second", the same as typing both names that way.
+  - For partner commanders, turn on **Partner** beside the seat and type the second commander in the field that appears under it. The game stores the pair as "First // Second", the same as typing both names that way. A card with two faces or an adventure is one commander: Scryfall names it "Kellan, the Fae-Blooded // Birthright Boon", the suggestion shows the front face, and either spelling starts the game with Kellan alone.
   - Who goes first, or let the app pick at random.
   - Every seat suggests names as you type: your decks from the sheet first, then every commander it knows, then Scryfall's matches. Names are matched to your sheet first, then looked up on Scryfall by exact name. Panels show the part before the comma.
   - Only 4-player games with every commander named are sent to your sheet. Other games are just a life counter.

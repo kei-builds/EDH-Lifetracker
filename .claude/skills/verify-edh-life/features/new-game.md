@@ -14,6 +14,7 @@ a confirmation.
 - `ng-discard` starts a new game over a kept one after a confirmation card.
 - `ng-placeholders` names blank seats You, Player 2, Player 3 and so on when fewer than 4 players.
 - `ng-suggest` offers commander names from Scryfall as any seat is typed, your own included, and forgets a lookup Scryfall refused so the next letters ask again.
+- `ng-faces` treats a card with two faces or an adventure as one commander: Scryfall names it "Kellan, the Fae-Blooded // Birthright Boon", the suggestion shows the front face, and a seat typed either way starts as Kellan alone, not a partner pair.
 
 ## How to get to it (user POV)
 
@@ -31,7 +32,8 @@ Preconditions:
 
 - **Home.** Look at the home screen. `await evidence.shot('home')`. `New game` is the primary button; `Resume game` is hidden.
 - **Suggestions after a refusal.** Inside `onSetup`, before Start game: `page.route` answers the `/cards/autocomplete` request for `q=kre` with a 429 once (`{ times: 1 }`), then `await app.$('seat1').fill('kre')` and wait for that response, `await app.$('seat1').fill('kren')`, and `#cmdList option[value="kren"]` appears. Fill the real name back before Start game.
-- **Setup and start.** Fill setup and start. `await app.newGame({ players: 2, life: 40, look: 'companion', names: ["Atraxa, Praetors' Voice", 'Krenko, Mob Boss'], first: 0, onSetup: () => evidence.shot('setup-filled') })`. The table shows with 2 panels; `await app.life(0)` and `app.life(1)` are 40; `app.panel(1).locator('.name')` contains `Krenko`; `await app.rotation(1)` is 180.
+- **An adventure is one commander.** Still inside `onSetup`: `await app.$('seat1').fill('kellan')` and `#cmdList option[value="Kellan, the Fae-Blooded"]` appears (the stub's one adventure card, `ADVENTURE` in `lib.mjs`, suggested by its front face). Then fill the seat with `ADVENTURE.name`, both faces, before Start game.
+- **Setup and start.** Fill setup and start. `await app.newGame({ players: 2, life: 40, look: 'companion', names: ["Atraxa, Praetors' Voice", ADVENTURE.name], first: 0, onSetup: () => evidence.shot('setup-filled') })`. The table shows with 2 panels; `await app.life(0)` and `app.life(1)` are 40; `app.panel(1).locator('.name')` contains `Kellan`; `await app.rotation(1)` is 180. `g.players[1]` is named `Kellan, the Fae-Blooded` with `partner` false and `letters` `WR`; `await app.openTool(0, 'damage')` shows one `.dmgRow .ctr` on panel 1 and no `.dmgRow.split`, then `await app.$('dmgDone').tap()`.
 - **Companion look.** Check the tiles. `app.panel(0)` has class `tools` and `.actions button` count is 4; `await app.theme()` is `companion`.
 - **Persistence.** Read the state. `const g = await app.game()`: `g.n` 2, `g.life0` 40, `g.players[1].name` `Krenko, Mob Boss`, `g.named` `[true, true]`, `g.active` 0, `g.round` 1. `(await app.store()).prefs.life` is `'40'` and `.players` is `'2'`. `await evidence.storeDump('after-start')`.
 - **Leave and keep.** Open the menu and go home. `await app.openMenu(); await app.$('toHome').tap()`. The home screen shows `Resume game` and the primary button reads `New game (discards current)`.
@@ -43,6 +45,7 @@ Preconditions:
 
 - With 4 players every seat must have a name or Start game refuses with `Fill in every commander so the game can go to your sheet.` Fewer players may leave seats blank.
 - Unknown names are looked up on Scryfall. Under the stub every name resolves; under `EDH_SCRYFALL=block` a `Couldn't find ... Start anyway?` card appears and `newGame` needs `startAnyway: true`.
+- The stub's exact lookup answers either face of its adventure card with the whole card (named by both faces, red-white) and, like Scryfall, finds nothing for the two-faced name itself; every other name resolves as typed.
 - The seat picker (`#seatPick`) and the 4-player layout row only show for 4 players and are not covered by this journey.
 - `Pick at random` picks who goes first and shows a toast; the journey always picks explicitly.
 - Reading `.name` with `innerText()` returns `KRENKO`; use `textContent()`.

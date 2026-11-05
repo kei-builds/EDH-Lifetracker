@@ -1,5 +1,8 @@
 // New game: home, setup, table, in both looks; the game and the setup preferences land in storage.
-const NAMES = ["Atraxa, Praetors' Voice", 'Krenko, Mob Boss'];
+import { ADVENTURE } from '../lib.mjs';
+
+// The second seat is typed the way Scryfall names an adventure card, by both faces; the game knows it by its front face.
+const NAMES = ["Atraxa, Praetors' Voice", ADVENTURE.name];
 
 export default async ({ page, app, evidence, assert }) => {
   assert.equal(await app.screen(), 'home');
@@ -21,6 +24,9 @@ export default async ({ page, app, evidence, assert }) => {
     await app.$('seat1').fill('kren');
     await page.locator('#cmdList option[value="kren"]').waitFor({ state: 'attached', timeout: 3000 })
       .catch(() => assert.fail('a rate-limited lookup is forgotten, so the next letters ask Scryfall again'));
+    await app.$('seat1').fill('kellan');
+    await page.locator(`#cmdList option[value="${ADVENTURE.faces[0]}"]`).waitFor({ state: 'attached', timeout: 3000 })
+      .catch(() => assert.fail('an adventure card is suggested by its front face, not as "Front // Adventure"'));
     await app.$('seat1').fill(NAMES[1]);
   };
   await app.newGame({ players: 2, life: 40, look: 'companion', names: NAMES, first: 0,
@@ -30,7 +36,7 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal(await app.life(0), 40);
   assert.equal(await app.life(1), 40);
   assert.match(await app.panel(0).locator('.name').textContent(), /Atraxa/);
-  assert.match(await app.panel(1).locator('.name').textContent(), /Krenko/);
+  assert.match(await app.panel(1).locator('.name').textContent(), /Kellan/);
   assert.equal(await app.rotation(1), 180, 'the opponent panel faces the top edge');
   assert.equal(await app.theme(), 'companion');
   assert.ok(await app.panel(0).evaluate(e => e.classList.contains('tools')), 'Companion shows the tiles without a tap');
@@ -46,8 +52,15 @@ export default async ({ page, app, evidence, assert }) => {
   let g = await app.game();
   assert.equal(g.n, 2);
   assert.equal(g.life0, 40);
-  assert.deepEqual(g.players.map(p => p.name), NAMES);
+  assert.deepEqual(g.players.map(p => p.name), [NAMES[0], ADVENTURE.faces[0]], 'an adventure card typed by both faces is one commander, named by its front');
+  assert.equal(g.players[1].partner, false, 'the adventure half is not a partner');
+  assert.equal(g.players[1].letters, 'WR');
   assert.deepEqual(g.named, [true, true]);
+  await app.openTool(0, 'damage');
+  assert.equal(await app.panel(1).locator('.dmgRow .ctr').count(), 1, 'Kellan deals commander damage as one commander, with no counter for the adventure');
+  assert.equal(await app.panel(1).locator('.dmgRow.split').count(), 0);
+  await evidence.shot('damage-one-commander');
+  await app.$('dmgDone').tap();
   assert.equal(g.active, 0);
   assert.equal(g.round, 1);
   const store = await app.store();

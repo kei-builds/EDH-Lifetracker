@@ -272,19 +272,20 @@ function scryfall(path) {
   return sfCache.get(path);
 }
 
-// Exact-name Scryfall lookup (front face for double-faced cards). Returns null offline or if not found.
+// Exact-name Scryfall lookup. A card is known by its front face, so "Kellan, the Fae-Blooded // Birthright Boon" (an
+// adventure, the way Scryfall suggests it) is one commander, while "Thrasios, Triton Hero // Tymna the Weaver" is a
+// partner pair, each half looked up on its own. Returns null offline or if not found.
 async function scryfallExact(name) {
   const one = async n => {
     const c = await scryfall(`named?exact=${encodeURIComponent(n)}`);
-    if (!c) return null;
-    const front = c.name.includes(' // ') && c.name.toLowerCase() !== n.toLowerCase() ? c.name.split(' // ')[0] : c.name;
-    return { name: front, ci: c.color_identity };
+    return c ? { name: c.name.split(' // ')[0], full: c.name, ci: c.color_identity } : null;
   };
   try {
-    let r = await one(name);
-    if (!r && name.includes(' // ')) {
-      const parts = await Promise.all(name.split(' // ').map(p => one(p.trim())));
-      if (parts.every(Boolean)) r = { name: parts.map(p => p.name).join(' // '), ci: [].concat(...parts.map(p => p.ci)) };
+    const halves = name.split(' // ').map(h => h.trim());
+    let r = await one(halves[0]);
+    if (r && halves.length > 1 && r.full.toLowerCase() !== name.toLowerCase()) {
+      const parts = await Promise.all(halves.map(one));
+      r = parts.every(Boolean) ? { name: parts.map(p => p.name).join(' // '), ci: [].concat(...parts.map(p => p.ci)) } : null;
     }
     if (!r) return null;
     const order = 'WUBRG';
@@ -392,6 +393,7 @@ async function resolveName(n) {
 // Name suggestions: Scryfall's autocomplete answers at most 20 names. When an answer had fewer, every longer query that
 // starts with the same letters is a subset of it, so those are filtered here instead of asked for again.
 // Every seat suggests the same names: your decks from the sheet first, then every commander it knows, then Scryfall.
+// Scryfall names a card by both its faces ("Kellan, the Fae-Blooded // Birthright Boon"); the suggestion is the front.
 const knownNames = () => store.lists.decks.concat(store.lists.commanders.map(c => c[0]));
 let acTimer = null;
 let acLast = null;
@@ -399,7 +401,7 @@ function autocomplete(e) {
   const q = e.target.value.trim();
   clearTimeout(acTimer);
   if (q.length < 3) return;
-  const suggest = names => fillList('cmdList', [...new Set(knownNames().concat(names))]);
+  const suggest = names => fillList('cmdList', [...new Set(knownNames().concat(names.map(n => n.split(' // ')[0])))]);
   const lq = q.toLowerCase();
   if (acLast && acLast.complete && lq.startsWith(acLast.q)) { suggest(acLast.names.filter(n => n.toLowerCase().includes(lq))); return; }
   if (!navigator.onLine) return;
