@@ -390,28 +390,56 @@ async function resolveName(n) {
   return sf ? { name: sf.name, letters: sf.letters, known: false } : { name: n, letters: null, known: false };
 }
 
-// Name suggestions: Scryfall's autocomplete answers at most 20 names. When an answer had fewer, every longer query that
-// starts with the same letters is a subset of it, so those are filtered here instead of asked for again.
-// Every seat suggests the same names: your decks from the sheet first, then every commander it knows, then Scryfall.
-// Scryfall names a card by both its faces ("Kellan, the Fae-Blooded // Birthright Boon"); the suggestion is the front.
+// Name suggestions: a row of names under the field being typed in. A tap fills the field and moves on to the next
+// one, and after the last field it puts the keyboard away. Every seat suggests the same names: your decks from the
+// sheet first, then every commander it knows, then Scryfall's matches. Scryfall's autocomplete answers at most 20
+// names; when an answer had fewer, every longer query that starts with the same letters is a subset of it, so those
+// are filtered here instead of asked for again. Scryfall names a card by both its faces ("Kellan, the Fae-Blooded //
+// Birthright Boon"); the suggestion is the front.
 const knownNames = () => store.lists.decks.concat(store.lists.commanders.map(c => c[0]));
+const seatFields = () => [...document.querySelectorAll('#seats input:not(.hidden)')];
+const suggestBox = el('div', 'suggest hidden');
+suggestBox.id = 'suggest';
+// A press on a suggestion must not take the focus, and the keyboard, off the field before the tap lands.
+suggestBox.addEventListener('pointerdown', e => e.preventDefault());
+$('seats').addEventListener('focusout', () => suggestBox.classList.add('hidden'));
+function showSuggestions(input, names) {
+  suggestBox.innerHTML = '';
+  if (!names.length) { suggestBox.classList.add('hidden'); return; }
+  names.slice(0, 8).forEach(name => {
+    const b = el('button', null, name);
+    b.type = 'button';
+    b.onclick = () => {
+      input.value = name;
+      suggestBox.classList.add('hidden');
+      const fields = seatFields();
+      const next = fields[fields.indexOf(input) + 1];
+      if (next) next.focus(); else input.blur();
+    };
+    suggestBox.appendChild(b);
+  });
+  input.closest('.seat').after(suggestBox);
+  suggestBox.classList.remove('hidden');
+}
 let acTimer = null;
 let acLast = null;
 function autocomplete(e) {
-  const q = e.target.value.trim();
-  clearTimeout(acTimer);
-  if (q.length < 3) return;
-  const suggest = names => fillList('cmdList', [...new Set(knownNames().concat(names.map(n => n.split(' // ')[0])))]);
+  const input = e.target;
+  const q = input.value.trim();
   const lq = q.toLowerCase();
-  if (acLast && acLast.complete && lq.startsWith(acLast.q)) { suggest(acLast.names.filter(n => n.toLowerCase().includes(lq))); return; }
-  if (!navigator.onLine) return;
+  clearTimeout(acTimer);
+  const suggest = names => showSuggestions(input,
+    [...new Set(knownNames().concat(names.map(n => n.split(' // ')[0])))].filter(n => lq && n.toLowerCase().includes(lq)));
+  if (acLast && acLast.complete && lq.startsWith(acLast.q)) { suggest(acLast.names); return; }
+  suggest([]);
+  if (q.length < 3 || !navigator.onLine) return;
   acTimer = setTimeout(async () => {
     try {
       const res = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(q)}`);
       if (!res.ok) return;
       const names = (await res.json()).data || [];
       acLast = { q: lq, names, complete: names.length < 20 };
-      suggest(names);
+      if (document.activeElement === input && input.value.trim().toLowerCase() === lq) suggest(names);
     } catch (err) { /* offline: keep the known list */ }
   }, 250);
 }
@@ -475,18 +503,18 @@ function renderSeats() {
     const input = el('input');
     input.id = `seat${i}`;
     input.autocomplete = 'off';
-    input.setAttribute('list', 'cmdList');
     input.placeholder = 'Commander';
     input.value = old[input.id] || '';
     input.addEventListener('input', autocomplete);
+    input.addEventListener('focus', autocomplete);
     // Off, the partner field is only hidden, so its name comes back if the switch goes on again.
     const partner = el('input', picked.partner[i] ? '' : 'hidden');
     partner.id = `partner${i}`;
     partner.autocomplete = 'off';
-    partner.setAttribute('list', 'cmdList');
     partner.placeholder = 'Partner';
     partner.value = old[partner.id] || '';
     partner.addEventListener('input', autocomplete);
+    partner.addEventListener('focus', autocomplete);
     const tog = el('button', 'toggle' + (picked.partner[i] ? ' on' : ''), 'Partner');
     tog.type = 'button';
     tog.setAttribute('aria-pressed', String(picked.partner[i]));
@@ -508,7 +536,6 @@ function renderSeats() {
 function openSetup() {
   const p = store.prefs;
   fillList('podList', store.lists.pods);
-  fillList('cmdList', knownNames());
   $('seats').innerHTML = '';
   seg('startLife', ['20', '25', '30', '40', '50', '60'], p.life);
   seg('playerCount', ['1', '2', '3', '4', '5', '6'], p.players, renderSeats);

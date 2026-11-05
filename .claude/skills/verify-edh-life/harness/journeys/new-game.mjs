@@ -11,10 +11,16 @@ export default async ({ page, app, evidence, assert }) => {
   assert.ok(Math.abs(card.width - button.width) < 1 && Math.abs(card.x - button.x) < 1, 'the sync card is as wide as the New game button and lines up with it');
   await evidence.shot('home');
 
+  const suggestion = text => page.locator('#suggest button', { hasText: text });
+  const focused = () => page.evaluate(() => document.activeElement && document.activeElement.id);
   const suggestions = async () => {
     await app.$('seat0').fill('atr');
-    await page.locator('#cmdList option[value="atr"]').waitFor({ state: 'attached', timeout: 3000 })
-      .catch(() => assert.fail('your own seat gets Scryfall suggestions like the others'));
+    await suggestion('atr').waitFor({ timeout: 3000 })
+      .catch(() => assert.fail('your own seat gets Scryfall suggestions like the others, in a row under the field'));
+    await suggestion('atr').tap();
+    assert.equal(await app.$('seat0').inputValue(), 'atr', 'a tapped suggestion fills the field');
+    assert.equal(await focused(), 'seat1', 'and moves on to the next seat');
+    assert.ok(!(await page.locator('#suggest button').count()), 'the empty next seat has nothing to suggest yet');
     await app.$('seat0').fill(NAMES[0]);
     await page.route(u => u.pathname === '/cards/autocomplete' && u.searchParams.get('q') === 'kre',
       route => route.fulfill({ status: 429, json: { object: 'error', status: 429 } }), { times: 1 });
@@ -22,11 +28,17 @@ export default async ({ page, app, evidence, assert }) => {
     await app.$('seat1').fill('kre');
     await limited;
     await app.$('seat1').fill('kren');
-    await page.locator('#cmdList option[value="kren"]').waitFor({ state: 'attached', timeout: 3000 })
+    await suggestion('kren').waitFor({ timeout: 3000 })
       .catch(() => assert.fail('a rate-limited lookup is forgotten, so the next letters ask Scryfall again'));
     await app.$('seat1').fill('kellan');
-    await page.locator(`#cmdList option[value="${ADVENTURE.faces[0]}"]`).waitFor({ state: 'attached', timeout: 3000 })
+    await suggestion('Kellan').waitFor({ timeout: 3000 })
       .catch(() => assert.fail('an adventure card is suggested by its front face, not as "Front // Adventure"'));
+    assert.equal(await suggestion('Kellan').textContent(), ADVENTURE.faces[0]);
+    await evidence.shot('suggestions');
+    await suggestion('Kellan').tap();
+    assert.equal(await app.$('seat1').inputValue(), ADVENTURE.faces[0]);
+    assert.notEqual(await focused(), 'seat1', 'a suggestion tapped on the last seat puts the keyboard away');
+    assert.ok(await page.locator('#suggest').isHidden(), 'and the row goes with it');
     await app.$('seat1').fill(NAMES[1]);
   };
   await app.newGame({ players: 2, life: 40, look: 'companion', names: NAMES, first: 0,

@@ -79,6 +79,12 @@ label.check input { width: 22px; height: 22px; accent-color: var(--accent); }
 
 /* A seat in setup: the commander with its Partner switch beside it, and the partner's name under it while that is on. */
 .seat { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 4px; align-items: center; }
+/* Name suggestions under the seat being typed in: a row of pills that scrolls sideways, each a tap to fill the field. */
+.suggest { display: flex; gap: 6px; margin-top: 8px; padding-bottom: 2px; overflow-x: auto; scrollbar-width: none; }
+.suggest::-webkit-scrollbar { display: none; }
+.suggest button { flex: none; max-width: 75vw; min-height: 36px; padding: 6px 14px; border: 1.5px solid var(--accent); border-radius: 18px;
+  background: rgba(14, 14, 36, .75); font-family: var(--cond); font-weight: 600; font-size: 15px; letter-spacing: .02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toggle { display: flex; align-items: center; gap: 7px; border: 0; background: none; padding: 8px 2px 8px 6px; font-family: var(--cond);
   font-weight: 700; font-size: 14px; letter-spacing: .05em; text-transform: uppercase; }
 .toggle::before { content: ""; width: 38px; height: 20px; border-radius: 10px; flex: none; background:
