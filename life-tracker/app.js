@@ -385,9 +385,12 @@ window.addEventListener('online', () => loadArt());
 async function resolveName(n) {
   if (!n) return { name: '', letters: '', known: true };
   const hit = knownColors()[n.toLowerCase()];
-  if (hit) return { name: hit[0], letters: hit[1], known: true };
+  // A sheet name in two halves is a partner pair or one card named by both faces, which only Scryfall can tell apart;
+  // offline, the sheet's word stands.
+  if (hit && !n.includes(' // ')) return { name: hit[0], letters: hit[1], known: true };
   const sf = await scryfallExact(n);
-  return sf ? { name: sf.name, letters: sf.letters, known: false } : { name: n, letters: null, known: false };
+  if (sf) return { name: sf.name, letters: sf.letters, known: !!hit && sf.name.toLowerCase() === n.toLowerCase() };
+  return hit ? { name: hit[0], letters: hit[1], known: true } : { name: n, letters: null, known: false };
 }
 
 // Name suggestions: a row of names under the field being typed in. A tap fills the field and moves on to the next

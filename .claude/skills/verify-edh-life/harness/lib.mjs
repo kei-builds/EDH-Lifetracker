@@ -67,6 +67,14 @@ export async function launchBrowser(opts = {}) {
 // One adventure card answers like the real Scryfall: either face's name finds the card, named by both faces, and the
 // two-faced name itself finds nothing.
 export const ADVENTURE = { faces: ['Kellan, the Fae-Blooded', 'Birthright Boon'], name: 'Kellan, the Fae-Blooded // Birthright Boon', color_identity: ['R', 'W'] };
+// A stand-in for the user's sheet, for a journey that connects to it in Settings: two decks, a partner pair and the
+// adventure card named by both faces (the way an older app version saved it), and it accepts any game saved to it.
+export const SHEET = { url: 'https://sheet.test/exec', key: 'test-key', decks: ['Poison Pod', 'Goblin Tribal'],
+  pair: 'Thrasios, Triton Hero // Tymna the Weaver', commanders: [[ADVENTURE.name, 'WR'], ['Thrasios, Triton Hero // Tymna the Weaver', 'WUBG']] };
+export async function routeSheet(context) {
+  await context.route(`${SHEET.url}**`, route => route.fulfill({ json: route.request().method() === 'POST' ? { ok: true }
+    : { ok: true, decks: SHEET.decks, commanders: SHEET.commanders, pods: [], last: {} } }));
+}
 const PIXEL_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 export async function routeScryfall(context, mode = process.env.EDH_SCRYFALL || 'stub') {
   if (mode === 'live') return;
@@ -183,6 +191,7 @@ export async function session(name, fn, { headedPause = 0 } = {}) {
   const untrack = await trackBrowser(browser);
   const context = await browser.newContext({ ...PHONE, serviceWorkers: 'block' });
   await routeScryfall(context);
+  await routeSheet(context);
   const page = await context.newPage();
   // A journey fails on an uncaught exception in the page and on any failed load of the app's own files. Console errors
   // and failed requests elsewhere (the stubbed Scryfall, say) are recorded in summary.json for the reader to weigh.

@@ -1,8 +1,9 @@
 // New game: home, setup, table, in both looks; the game and the setup preferences land in storage.
-import { ADVENTURE } from '../lib.mjs';
+import { ADVENTURE, SHEET } from '../lib.mjs';
 
-// The second seat is typed the way Scryfall names an adventure card, by both faces; the game knows it by its front face.
-const NAMES = ["Atraxa, Praetors' Voice", ADVENTURE.name];
+// The first seat is a partner pair picked from the sheet into one box; the second is the sheet's adventure card named
+// by both faces, which the game knows by its front face.
+const NAMES = [SHEET.pair, ADVENTURE.name];
 
 export default async ({ page, app, evidence, assert }) => {
   assert.equal(await app.screen(), 'home');
@@ -10,6 +11,16 @@ export default async ({ page, app, evidence, assert }) => {
   const [card, button] = await Promise.all([app.$('syncCard').boundingBox(), app.$('newGame').boundingBox()]);
   assert.ok(Math.abs(card.width - button.width) < 1 && Math.abs(card.x - button.x) < 1, 'the sync card is as wide as the New game button and lines up with it');
   await evidence.shot('home');
+
+  // Connect to the sheet, so its decks and commanders are suggested and matched first.
+  await app.$('openSettings').tap();
+  await app.$('setUrl').fill(SHEET.url);
+  await app.$('setKey').fill(SHEET.key);
+  await app.$('saveSettings').tap();
+  await page.locator('#settingsMsg', { hasText: 'Connected. 2 decks and 2 commanders loaded.' }).waitFor({ timeout: 3000 })
+    .catch(async () => assert.fail(`Settings did not connect to the sheet stand-in: ${await app.$('settingsMsg').textContent()}`));
+  await app.$('closeSettings').tap();
+  assert.equal(await app.screen(), 'home');
 
   const suggestion = text => page.locator('#suggest button', { hasText: text });
   const focused = () => page.evaluate(() => document.activeElement && document.activeElement.id);
@@ -31,23 +42,23 @@ export default async ({ page, app, evidence, assert }) => {
     await suggestion('kren').waitFor({ timeout: 3000 })
       .catch(() => assert.fail('a rate-limited lookup is forgotten, so the next letters ask Scryfall again'));
     await app.$('seat1').fill('kellan');
-    await suggestion('Kellan').waitFor({ timeout: 3000 })
+    const front = page.locator('#suggest').getByRole('button', { name: ADVENTURE.faces[0], exact: true });
+    await front.waitFor({ timeout: 3000 })
       .catch(() => assert.fail('an adventure card is suggested by its front face, not as "Front // Adventure"'));
-    assert.equal(await suggestion('Kellan').textContent(), ADVENTURE.faces[0]);
+    assert.equal(await suggestion(ADVENTURE.name).count(), 1, 'the sheet still suggests the name it saved, by both faces');
     await evidence.shot('suggestions');
-    await suggestion('Kellan').tap();
-    assert.equal(await app.$('seat1').inputValue(), ADVENTURE.faces[0]);
+    await suggestion(ADVENTURE.name).tap();
+    assert.equal(await app.$('seat1').inputValue(), ADVENTURE.name);
     assert.notEqual(await focused(), 'seat1', 'a suggestion tapped on the last seat puts the keyboard away');
     assert.ok(await page.locator('#suggest').isHidden(), 'and the row goes with it');
-    await app.$('seat1').fill(NAMES[1]);
   };
-  await app.newGame({ players: 2, life: 40, look: 'companion', names: NAMES, first: 0,
+  await app.newGame({ players: 2, life: 40, look: 'companion', names: [NAMES[0]], first: 0,
     onSetup: async () => { await evidence.shot('setup-filled'); await suggestions(); } });
   assert.equal(await app.screen(), 'table');
   assert.equal(await app.panelCount(), 2);
   assert.equal(await app.life(0), 40);
   assert.equal(await app.life(1), 40);
-  assert.match(await app.panel(0).locator('.name').textContent(), /Atraxa/);
+  assert.match(await app.panel(0).locator('.name').textContent(), /Thrasios/);
   assert.match(await app.panel(1).locator('.name').textContent(), /Kellan/);
   assert.equal(await app.rotation(1), 180, 'the opponent panel faces the top edge');
   assert.equal(await app.theme(), 'companion');
@@ -64,14 +75,19 @@ export default async ({ page, app, evidence, assert }) => {
   let g = await app.game();
   assert.equal(g.n, 2);
   assert.equal(g.life0, 40);
-  assert.deepEqual(g.players.map(p => p.name), [NAMES[0], ADVENTURE.faces[0]], 'an adventure card typed by both faces is one commander, named by its front');
+  assert.deepEqual(g.players.map(p => p.name), [SHEET.pair, ADVENTURE.faces[0]], 'the sheet\'s adventure card named by both faces is one commander, named by its front; its pair stays a pair');
   assert.equal(g.players[1].partner, false, 'the adventure half is not a partner');
   assert.equal(g.players[1].letters, 'WR');
+  assert.equal(g.players[0].partner, true, 'a partner pair picked from the sheet into one box is a pair');
   assert.deepEqual(g.named, [true, true]);
   await app.openTool(0, 'damage');
   assert.equal(await app.panel(1).locator('.dmgRow .ctr').count(), 1, 'Kellan deals commander damage as one commander, with no counter for the adventure');
   assert.equal(await app.panel(1).locator('.dmgRow.split').count(), 0);
   await evidence.shot('damage-one-commander');
+  await app.$('dmgDone').tap();
+  await app.openTool(1, 'damage');
+  assert.equal(await app.panel(0).locator('.dmgRow.split .ctr').count(), 2, 'the pair deals damage as two commanders');
+  await evidence.shot('damage-pair');
   await app.$('dmgDone').tap();
   assert.equal(g.active, 0);
   assert.equal(g.round, 1);
