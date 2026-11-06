@@ -73,9 +73,9 @@ Exit code 1 if any journey failed. The journeys are the recipes in `features/`, 
 | Journey | Feature file | Proves |
 | --- | --- | --- |
 | `new-game` | `features/new-game.md` | Home, setup, table in both looks; game and preferences in storage |
-| `life-total` | `features/life-total.md` | Taps, the floating delta, press-and-hold, undo grouping, low-life colors, knockout at 0 |
-| `commander-damage` | `features/commander-damage.md` | Damage tile and swipe open damage mode; damage lowers life; 21 knocks out |
-| `tool-sheets` | `features/tool-sheets.md` | Tax, mana and storm, counters, the rad reminder, poison knockout, Concede |
+| `life-total` | `features/life-total.md` | Taps, the floating delta, press-and-hold, undo grouping, low-life colors, knockout at 0, Bring back |
+| `commander-damage` | `features/commander-damage.md` | Damage tile and swipe open damage mode; damage lowers life; 21 knocks out, and again after Bring back only on a new crossing |
+| `tool-sheets` | `features/tool-sheets.md` | Tax, mana and storm, counters, the rad reminder, poison knockout, Concede, Out by hand |
 | `turns-and-finish` | `features/turns-and-finish.md` | Turn passing and rounds, the options menu, leave and resume, ending a game |
 | `save-game` | `features/save-game.md` | A fully named 4-player game through Finish game to one entry in the sync queue |
 

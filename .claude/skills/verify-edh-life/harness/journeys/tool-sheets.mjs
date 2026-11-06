@@ -92,6 +92,21 @@ export default async ({ page, app, evidence, assert }) => {
   assert.match(await app.panel(1).locator('.out').textContent(), /poison/);
   await evidence.shot('poisoned-out');
 
+  // Brought back past ten poison the player stays in, and Concede reads Out: it records what their numbers show.
+  await app.panel(1).getByRole('button', { name: 'Bring back' }).tap();
+  assert.equal((await app.game()).players[1].out, null, 'Bring back puts the player back in');
+  await app.openTool(1, 'counters');
+  await plusIn(app.sheet(1), 0).tap();
+  assert.equal((await app.game()).players[1].out, null, 'one more poison past ten crosses nothing');
+  assert.equal(await app.sheet(1).getByRole('button', { name: 'Concede' }).count(), 0, 'past a line there is no Concede');
+  assert.equal(await app.sheet(1).getByRole('button', { name: 'Out' }).isDisabled(), false, 'but an Out to tap');
+  await evidence.shot('out-by-hand-offered');
+  await app.sheet(1).getByRole('button', { name: 'Out' }).tap();
+  g = await app.game();
+  assert.equal(g.players[1].out.cause, 'poison', 'Out by hand records the cause the numbers show');
+  assert.equal(await app.sheet(1).count(), 0, 'and closes the sheet');
+  evidence.note('brought back past ten poison, then put out by hand', { cause: g.players[1].out.cause });
+
   await app.openTool(0, 'counters');
   await app.sheet(0).getByRole('button', { name: 'Concede' }).tap();
   g = await app.game();

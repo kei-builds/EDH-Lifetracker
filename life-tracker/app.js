@@ -660,9 +660,10 @@ function commit() { persist(); renderTable(); }
 
 function changeLife(p, d) {
   snapshot(`life ${p}`);
+  const was = past(G().players[p]);
   G().players[p].life += d;
   logEvent({ p, life: d });
-  checkOut(p, 'life');
+  checkOut(p, was, 'life');
   showDelta(p, d);
   commit();
 }
@@ -670,10 +671,11 @@ function changeCmd(target, from, half, d) {
   const pl = G().players[target];
   if (pl.cmd[from][half] + d < 0) return;
   snapshot(`cmd ${target} ${from} ${half}`);
+  const was = past(pl);
   pl.cmd[from][half] += d;
   pl.life -= d;
   logEvent({ p: target, cmd: d, from, half });
-  checkOut(target, 'cmd');
+  checkOut(target, was, 'cmd');
   showDelta(target, -d);
   commit();
 }
@@ -681,9 +683,10 @@ function changeCounter(p, key, d) {
   const pl = G().players[p];
   if (pl.counters[key] + d < 0) return;
   snapshot(`counter ${p} ${key}`);
+  const was = past(pl);
   pl.counters[key] += d;
   logEvent({ p, [key]: d });
-  if (key === 'poison') checkOut(p, 'poison');
+  if (key === 'poison') checkOut(p, was, 'poison');
   commit();
 }
 function changeTax(p, half, d) {
@@ -698,19 +701,32 @@ function changeMana(p, c, d) {
   pl.mana[c] += d;
   commit();
 }
-function checkOut(p, via) {
+// The lines a player can be past: ten poison, 21 damage from one commander (counted per commander), no life left.
+const past = pl => ({ poison: pl.counters.poison >= 10, cmd: pl.cmd.flat().filter(d => d >= 21).length, life: pl.life <= 0 });
+// What a player's numbers say has beaten them, or null while they are past no line.
+const lethalCause = pl => { const m = past(pl); return m.poison ? 'poison' : m.cmd ? 'cmd' : m.life ? 'life' : null; };
+// A player goes out on the change that takes them across a line, not for being past one. So a player brought back in
+// stays in, however far past a line, until a change crosses one again. was is past() from before the change.
+function checkOut(p, was, via) {
   const pl = G().players[p];
   if (pl.out) return;
-  let cause = null;
-  if (pl.counters.poison >= 10) cause = 'poison';
-  else if (pl.cmd.some(c => c[0] >= 21 || c[1] >= 21)) cause = 'cmd';
-  else if (pl.life <= 0) cause = via === 'cmd' ? 'cmd' : 'life';
-  if (cause) eliminate(p, cause);
+  const now = past(pl);
+  if (now.poison && !was.poison) eliminate(p, 'poison');
+  else if (now.cmd > was.cmd) eliminate(p, 'cmd');
+  else if (now.life && !was.life) eliminate(p, via === 'cmd' ? 'cmd' : 'life');
 }
 function eliminate(p, cause) {
   G().players[p].out = { turn: G().round, cause };
   logEvent({ p, out: cause });
   if (G().active === p && alive().length > 1) advanceTurn();
+}
+// Puts a player who is out back in at the numbers they have: a miscount, a concession taken back, a card that keeps
+// them alive. The turn stays where it is; Undo is what rewinds a knockout made a moment ago.
+function bringBack(p) {
+  snapshot();
+  G().players[p].out = null;
+  logEvent({ p, back: true });
+  commit();
 }
 function advanceTurn() {
   const g = G();
@@ -1035,6 +1051,9 @@ function buildFace(face, p) {
     const out = el('div', 'out');
     out.appendChild(el('div', null, 'Out'));
     out.appendChild(el('small', null, `turn ${pl.out.turn} · ${CAUSE_LABEL[pl.out.cause]}`));
+    const back = el('button', null, 'Bring back');
+    back.onclick = () => bringBack(p);
+    out.appendChild(back);
     face.appendChild(out);
   }
 }
@@ -1120,9 +1139,12 @@ function sheet(p, kind) {
       grid.appendChild(counter('', pl.counters[k], () => changeCounter(p, k, -1), () => changeCounter(p, k, 1), name));
     });
     s.appendChild(grid);
-    const concede = el('button', 'danger', pl.out ? 'Out' : 'Concede');
+    // A player who is in while past a line (brought back) has no number left to cross, so this puts them out by hand
+    // for what their numbers show. For anyone else it is a concession.
+    const cause = lethalCause(pl);
+    const concede = el('button', 'danger', pl.out || cause ? 'Out' : 'Concede');
     concede.disabled = !!pl.out;
-    concede.onclick = () => { snapshot(); eliminate(p, 'concede'); ui[p].sheet = null; commit(); };
+    concede.onclick = () => { snapshot(); eliminate(p, cause || 'concede'); ui[p].sheet = null; commit(); };
     btns.appendChild(concede);
   }
   const done = el('button', null, 'Done');

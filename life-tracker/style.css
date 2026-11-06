@@ -152,6 +152,8 @@ label.check input { width: 22px; height: 22px; accent-color: var(--accent); }
   align-items: center; justify-content: center; gap: 2px; z-index: 3; }
 .out div { text-transform: uppercase; font-family: var(--num); font-weight: 700; font-size: 44px; letter-spacing: .06em; line-height: 1; }
 .out small { font-family: var(--cond); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.out button { margin-top: 10px; min-height: 36px; padding: 0 16px; border: 1px solid rgba(255, 255, 255, .35); border-radius: 6px; background: transparent;
+  font-family: var(--cond); font-weight: 700; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
 
 /* Panel overlays: tax, mana, counters. */
 .sheet { position: absolute; inset: 0; background: rgba(5, 5, 9, .9); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
@@ -461,6 +463,7 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 [data-theme="minimal"] .grid:not(.two):not(.six) .ctr button:last-of-type { text-align: left; padding-left: 18px; }
 [data-theme="minimal"] .sheetBtns button { min-height: 34px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .1); }
 [data-theme="minimal"] .sheetBtns .danger { background: rgba(190, 40, 34, .5); color: #fff; }
+[data-theme="minimal"] .out button { border: 0; border-radius: 999px; background: rgba(255, 255, 255, .14); }
 [data-theme="minimal"] .dmgRow .ctr { border-radius: 999px; }
 /* Done sits on the target's own edge here, so the back chevron would only crowd it. */
 [data-theme="minimal"] .dmgBack { display: none; }

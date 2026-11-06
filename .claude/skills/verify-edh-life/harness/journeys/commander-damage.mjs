@@ -59,6 +59,26 @@ export default async ({ page, app, evidence, assert }) => {
   await evidence.storeDump('knocked-out-by-commander');
   evidence.note('21 from one commander knocked Krenko out', { cmd: g.players[1].cmd[2][0] });
 
+  // Brought back past 21, more damage from that commander crosses nothing; under 21 and up to it again does.
+  await app.panel(1).getByRole('button', { name: 'Bring back' }).tap();
+  assert.equal((await app.game()).players[1].out, null, 'Bring back puts Krenko back in');
+  await app.openTool(1, 'damage');
+  await plus(2).tap();
+  g = await app.game();
+  assert.equal(g.players[1].out, null, 'one more from a commander already past 21 crosses nothing');
+  const minus = app.panel(2).locator('.ctr').getByRole('button', { name: '−', exact: true });
+  for (let i = g.players[1].cmd[2][0]; i > 20; i--) await minus.tap();
+  assert.equal((await app.game()).players[1].cmd[2][0], 20);
+  await plus(2).tap();
+  g = await app.game();
+  assert.equal(g.players[1].cmd[2][0], 21);
+  assert.equal(g.players[1].out.cause, 'cmd', 'back under 21 and up to it again is a new knockout');
+  await minus.tap();
+  assert.equal((await app.game()).players[1].out.cause, 'cmd', 'taking the damage back does not bring a player back in');
+  await app.$('dmgDone').tap();
+  await evidence.shot('out-again-by-commander');
+  evidence.note('brought back past 21, stayed in, went out again on a new crossing');
+
   await app.openMenu();
   await app.$('toHome').tap();
   await page.setViewportSize(PHONE_WITH_BARS);

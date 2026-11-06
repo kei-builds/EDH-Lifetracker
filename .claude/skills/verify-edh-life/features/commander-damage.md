@@ -12,7 +12,7 @@ and 21 from a single commander knocks them out.
 - `cmd-count` adds damage from another player's commander and lowers the target's life by the same amount.
 - `cmd-done` leaves damage mode with Done in the hub or the back chevron on the target panel.
 - `cmd-tile` lists each source's total on the target's Damage tile, in Companion as rows under the tile's icon and label, which start where the Tax tile's do. The tile is the Tax tile's size while empty and grows with its rows; four rows, your own commander's included, fit on every panel. Rows are in one order on every panel, the player's own commander first, then each opponent clockwise from their left, with the numbers aligned on their right edge.
-- `cmd-lethal` knocks the target out at 21 from one commander, with cause commander damage.
+- `cmd-lethal` knocks the target out on the change that takes one commander's damage to 21, with cause commander damage. Brought back past 21, the target stays in until a commander's damage crosses 21 again.
 
 ## How to get to it (user POV)
 
@@ -32,7 +32,8 @@ Preconditions:
 - **Four players at 360x704.** Leave for home through the menu, `page.setViewportSize({ width: 360, height: 704 })`, start a 4-player game with every seat named, deal one damage from each opponent to You, then add two poison and one energy on You. `.a-damage .vals .v` counts 3, `.a-counters .vals .v` counts 2, and the header check holds on panel 0.
 - **Swipe in and out.** `await app.swipe(1)` enters damage mode for player 1; `await app.swipe(1)` again leaves it.
 - **Lethal.** Reopen from the tile and hold `+` on Yuriko's row: `await app.hold(plus(2), 2800)`. `cmd[2][0]` is at least 21, `players[1].out.cause` is `cmd`, and life equals 40 minus the damage. After `Done`, `app.panel(1).locator('.out')` reads `commander damage`.
-- **Proof.** `await evidence.shot('damage-mode')`, `('three-damage')`, `('tile-shows-damage')`, `('lethal-in-damage-mode')`, `('knocked-out-by-commander')`, `await evidence.storeDump('knocked-out-by-commander')`, `await evidence.shot('four-player-tiles')`.
+- **Brought back past 21.** Tap `Bring back` on panel 1, reopen damage from its tile and tap `+` on Yuriko's row: `players[1].out` stays null. Tap `−` down to 20, then `+` once: `cmd[2][0]` is 21 and `players[1].out.cause` is `cmd` again. One `−` after that leaves them Out.
+- **Proof.** `await evidence.shot('damage-mode')`, `('three-damage')`, `('tile-shows-damage')`, `('lethal-in-damage-mode')`, `('knocked-out-by-commander')`, `('out-again-by-commander')`, `await evidence.storeDump('knocked-out-by-commander')`, `await evidence.shot('four-player-tiles')`.
 
 ## Gotchas
 
@@ -40,5 +41,6 @@ Preconditions:
 - A swipe that starts within 24 px of a side edge or 32 px of the bottom is left to the phone's gestures and does nothing. `app.swipe` starts from the panel center.
 - Sideways is from the player's seat: along x for a panel facing up or down (`r0`, `r180`), along y for a side panel (`r90`, `r270`). `app.swipe` reads the panel's class.
 - A swipe on a player who is Out, or while a tool sheet is open, does nothing. With fewer than 2 players there is no damage mode.
+- An Out player's Damage tile sits under the Out overlay, so damage mode for them opens only before they go out or after `Bring back`.
 - The hold goes past 21; the knockout happens once at the first point that reaches 21. Assert `>= 21`, not `== 21`.
 - With a partner pair the row splits in two counters (`.dmgRow.split`); this journey covers single commanders only.

@@ -51,9 +51,9 @@ observable proof.
 ## Features
 
 - [New game](./new-game.md) covers the home screen, the setup screen, both looks, and starting, leaving and resuming a game. Journey `new-game`.
-- [Life total](./life-total.md) covers taps, the floating total, press-and-hold, undo grouping, low-life colors and the knockout at zero. Journey `life-total`.
+- [Life total](./life-total.md) covers taps, the floating total, press-and-hold, undo grouping, low-life colors, the knockout at zero and Bring back. Journey `life-total`.
 - [Commander damage](./commander-damage.md) covers the Damage tile, the sideways swipe, entering damage from a seat, the tile afterwards and the lethal 21. Journey `commander-damage`.
-- [Tool sheets](./tool-sheets.md) covers Tax, Mana with storm, Counters with the rad reminder, the poison knockout and Concede. Journey `tool-sheets`.
+- [Tool sheets](./tool-sheets.md) covers Tax, Mana with storm, Counters with the rad reminder, the poison knockout, Concede and Out by hand. Journey `tool-sheets`.
 - [Turns and finish](./turns-and-finish.md) covers passing the turn, rounds, undoing a pass, the options menu, and ending a game that stays on the phone. Journey `turns-and-finish`.
 - [Save game](./save-game.md) covers finishing a fully named 4-player game, the Game details fields, the queue entry and the home screen count. Journey `save-game`.
 

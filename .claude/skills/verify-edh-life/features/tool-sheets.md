@@ -13,6 +13,7 @@ energy, experience and rad, opens the rad reminder, and holds Concede. Nonzero v
 - `ts-rad` opens the Radiation reminder with its rules text from the Rad name, and Close dismisses it.
 - `ts-poison-out` knocks a player out at 10 poison; Concede becomes a disabled Out.
 - `ts-concede` knocks the player out with cause conceded.
+- `ts-out-by-hand` offers `Out` in place of Concede for a player who is in while past a line (brought back at 10 poison, 21 from a commander or 0 life), and records the cause their numbers show.
 - `ts-done` closes a sheet with Done.
 
 ## How to get to it (user POV)
@@ -36,8 +37,9 @@ Preconditions:
 - **Rad reminder.** Tap `app.sheet(1).getByRole('button', { name: 'What rad counters do' })`. `#radInfo` is visible and `#radText` mentions rad counters. `await app.$('radClose').tap()` hides it.
 - **Tile.** After `Done`, `app.panel(1).locator('.a-counters')` contains `3` and `1`. The tile's `svg` is visible, and `app.tileHeader(1, 'counters')` reports the label under the icon, the first row under the label, and `iconTop` within 2 px of `taxIconTop`.
 - **Poison knockout.** Reopen Counters on player 1 and `await app.hold(plusIn(app.sheet(1), 0), 1400)`. Poison is at least 10, `players[1].out.cause` is `poison`, the `Out` button in the sheet is disabled, and after `Done` the panel's `.out` reads `poison`.
+- **Out by hand.** Tap `Bring back` on panel 1, reopen Counters and tap poison `+` once: `players[1].out` stays null. The sheet has no `Concede`, and its `Out` button is enabled. Tap it: `players[1].out.cause` is `poison` and the sheet is closed.
 - **Concede.** `await app.openTool(0, 'counters')` then tap `Concede`. `players[0].out.cause` is `concede` and the panel's `.out` reads `conceded`.
-- **Proof.** `await evidence.shot('tax-sheet')`, `('mana-sheet')`, `('counters-sheet')`, `('rad-reminder')`, `('counters-tile')`, `('poisoned-out')`, `('conceded')`, `await evidence.storeDump('both-out')`.
+- **Proof.** `await evidence.shot('tax-sheet')`, `('mana-sheet')`, `('counters-sheet')`, `('rad-reminder')`, `('counters-tile')`, `('poisoned-out')`, `('out-by-hand-offered')`, `('conceded')`, `await evidence.storeDump('both-out')`.
 
 ## Gotchas
 

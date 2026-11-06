@@ -70,6 +70,33 @@ export default async ({ page, app, evidence, assert }) => {
   await evidence.aria('knocked-out');
   await evidence.storeDump('knocked-out');
 
+  // Brought back, a player plays on at the numbers they have and goes out again only by crossing a line again.
+  await app.panel(1).getByRole('button', { name: 'Bring back' }).tap();
+  g = await app.game();
+  assert.equal(g.players[1].out, null, 'Bring back puts the player back in');
+  assert.equal(await app.panel(1).locator('.out').count(), 0);
+  assert.equal(await app.life(1), 0, 'at the life they had');
+  assert.notEqual(await app.$('turnLabel').textContent(), 'Finish', 'and the game goes on');
+  await app.tapLife(1, -1, 2);
+  assert.equal(await app.life(1), -2);
+  assert.equal((await app.game()).players[1].out, null, 'already at 0, losing more life crosses nothing');
+  await evidence.shot('brought-back');
+  await page.waitForTimeout(1700);
+  await app.tapLife(1, 1, 3);
+  await app.tapLife(1, -1);
+  g = await app.game();
+  assert.equal(g.players[1].life, 0);
+  assert.equal(g.players[1].out.cause, 'life', 'back above 0 and down to it again is a new knockout');
+  await app.$('undo').tap();
+  assert.equal(await app.life(1), -2, 'Undo takes back the run that knocked them out again');
+  assert.equal((await app.game()).players[1].out, null);
+  await app.$('undo').tap();
+  assert.equal(await app.life(1), 0);
+  assert.equal((await app.game()).players[1].out, null);
+  await app.$('undo').tap();
+  assert.equal((await app.game()).players[1].out.cause, 'life', 'Bring back is one undo step of its own');
+  evidence.note('brought back at 0, stayed in below it, went out again on a new crossing');
+
   await app.$('undo').tap();
   assert.equal(await app.life(1), 40, 'the unbroken run of taps was one step');
   assert.equal(await app.panel(1).locator('.out').count(), 0);

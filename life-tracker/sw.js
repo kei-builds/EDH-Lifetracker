@@ -1,5 +1,5 @@
 // Caches the app so it opens without a connection. Bump VERSION when the files change.
-const VERSION = 'edh-life-23';
+const VERSION = 'edh-life-24';
 const ART = 'edh-life-art';  // commander art and the Radiation token, kept across versions
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 // Scryfall's mana symbols, fetched once at install so the mana sheet is whole offline; a miss must not stop the install.
