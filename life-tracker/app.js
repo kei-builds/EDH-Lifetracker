@@ -64,6 +64,7 @@ const store = (() => {
   try { return Object.assign(defaults(), JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); }
   catch (e) { return defaults(); }
 })();
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
 function persist() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* storage unavailable */ }
 }
@@ -410,26 +411,34 @@ async function resolveName(n) {
 // Birthright Boon"); the suggestion is the front.
 const knownNames = () => store.lists.decks.concat(store.lists.commanders.map(c => c[0]));
 const seatFields = () => [...document.querySelectorAll('#seats input:not(.hidden)')];
+// The row belongs to one field at a time (suggestFor), and only the app moves or hides it: it shows under the field
+// being typed in, moves when another field is typed in, and hides when a suggestion is picked, when the field's text
+// matches nothing, when the seats are redrawn, or when a tap lands anywhere else on the screen. It does not follow the
+// focus: a tap on a button below the row takes the focus at the press, and hiding the row then would move the button
+// up before the release, so the tap would land on nothing.
 const suggestBox = el('div', 'suggest hidden');
 suggestBox.id = 'suggest';
+let suggestFor = null;
 // A press on a suggestion must not take the focus, and the keyboard, off the field before the tap lands.
 suggestBox.addEventListener('pointerdown', e => e.preventDefault());
-$('seats').addEventListener('focusout', () => suggestBox.classList.add('hidden'));
+function hideSuggestions() { suggestFor = null; suggestBox.classList.add('hidden'); }
+$('setup').addEventListener('click', e => { if (suggestFor && e.target !== suggestFor && !suggestBox.contains(e.target)) hideSuggestions(); });
 function showSuggestions(input, names) {
   suggestBox.innerHTML = '';
-  if (!names.length) { suggestBox.classList.add('hidden'); return; }
+  if (!names.length) { hideSuggestions(); return; }
   names.slice(0, 8).forEach(name => {
     const b = el('button', null, name);
     b.type = 'button';
     b.onclick = () => {
       input.value = name;
-      suggestBox.classList.add('hidden');
+      hideSuggestions();
       const fields = seatFields();
       const next = fields[fields.indexOf(input) + 1];
       if (next) next.focus(); else input.blur();
     };
     suggestBox.appendChild(b);
   });
+  suggestFor = input;
   input.closest('.seat').after(suggestBox);
   suggestBox.classList.remove('hidden');
 }
@@ -499,7 +508,9 @@ function renderSeatPick(key) {
 
 function renderSeats() {
   const n = Number(picked.playerCount);
+  hideSuggestions();
   $('layoutWrap').classList.toggle('hidden', n !== 4);
+  $('podWrap').classList.toggle('hidden', n !== 4);
   renderSeatPick(layoutKey(n, picked.layout));
   const seats = currentLayout().seats;
   // Names and Partner switches carry over to the seats that remain when the player count or layout changes.
@@ -545,9 +556,35 @@ function renderSeats() {
   $('syncNote').textContent = n === 4 ? '' : 'Only 4-player games are sent to your sheet. This one is just for counting life.';
 }
 
+// The setup screen's state, in one place: 'closed' while it is not showing, 'draft' while the form is being filled in,
+// 'checking' while Start game waits on the name lookups. Start game runs only from 'draft', and the check it starts
+// belongs to that one visit: when its answers arrive after Cancel, or after a new visit started another, it stops.
+let setup = { state: 'closed' };
+function setupState(state) {
+  setup = { state };
+  $('startGame').disabled = state === 'checking';
+  return setup;
+}
+
+// The pods the sheet knows, as pills under the Pod field: a tap fills the field, and the one matching it is lit.
+function renderPodPick() {
+  const row = $('podPick');
+  row.innerHTML = '';
+  const cur = $('setupPod').value.trim().toLowerCase();
+  store.lists.pods.forEach(pod => {
+    const b = el('button', pod.toLowerCase() === cur ? 'on' : null, pod);
+    b.type = 'button';
+    b.onclick = () => { $('setupPod').value = pod; renderPodPick(); };
+    row.appendChild(b);
+  });
+  row.classList.toggle('hidden', !row.childElementCount);
+}
+
 function openSetup() {
   const p = store.prefs;
-  fillList('podList', store.lists.pods);
+  $('setupPod').value = (store.lists.last || {}).pod || '';
+  $('setupPod').oninput = renderPodPick;
+  renderPodPick();
   $('seats').innerHTML = '';
   seg('startLife', ['20', '25', '30', '40', '50', '60'], p.life);
   seg('playerCount', ['1', '2', '3', '4', '5', '6'], p.players, renderSeats);
@@ -559,6 +596,7 @@ function openSetup() {
   picked.seatBy = {};
   renderSeats();
   msg('setupMsg', '');
+  setupState('draft');
   show('setup');
 }
 $('newGame').onclick = async () => {
@@ -566,7 +604,7 @@ $('newGame').onclick = async () => {
   openSetup();
 };
 $('resumeGame').onclick = () => { show('table'); loadArt(); };
-$('cancelSetup').onclick = () => { renderHome(); show('home'); };
+$('cancelSetup').onclick = () => { setupState('closed'); renderHome(); show('home'); };
 $('randomFirst').onclick = () => {
   const btns = $('first').children;
   const i = Math.floor(Math.random() * btns.length);
@@ -581,6 +619,7 @@ function newPlayer(name, letters, life, n) {
 }
 
 $('startGame').onclick = async () => {
+  if (setup.state !== 'draft') return;
   const n = Number(picked.playerCount);
   const key = layoutKey(n, picked.layout);
   const seatNames = LAYOUTS[key].seats.map((s, i) => [$(`seat${i}`).value.trim()].concat(picked.partner[i] ? [$(`partner${i}`).value.trim()] : []));
@@ -589,12 +628,15 @@ $('startGame').onclick = async () => {
   // A partner pair becomes "First // Second", the way it has always been typed, so everything downstream reads it unchanged.
   const typed = seatNames.map(h => h.join(' // '));
   if (n === 4 && typed.some(t => !t)) { msg('setupMsg', 'Fill in every commander so the game can go to your sheet.', true); return; }
+  const run = setupState('checking');
   msg('setupMsg', 'Checking names…');
   const resolved = await Promise.all(typed.map(resolveName));
+  if (setup !== run) return;
   const unknown = resolved.filter(r => r.name && r.letters == null).map(r => r.name);
-  if (unknown.length && !await ask(`Couldn't find ${unknown.join(', ')} on Scryfall. Start anyway?`, 'Start anyway')) {
-    msg('setupMsg', 'Check the spelling and try again.', true);
-    return;
+  if (unknown.length) {
+    const anyway = await ask(`Couldn't find ${unknown.join(', ')} on Scryfall. Start anyway?`, 'Start anyway');
+    if (setup !== run) return;
+    if (!anyway) { setupState('draft'); msg('setupMsg', 'Check the spelling and try again.', true); return; }
   }
   const life = Number(picked.startLife);
   const seat = picked.seatBy[key] || 0;
@@ -603,18 +645,15 @@ $('startGame').onclick = async () => {
   const colors = {};
   resolved.forEach(r => { if (!r.known && r.letters != null) colors[r.name] = r.letters; });
   const first = Number(picked.first);
-  store.game = {
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random(),
+  setupState('closed');
+  msg('setupMsg', '');
+  beginGame({
+    id: newId(), pod: $('setupPod').value.trim(),
     n, layout: key, seat, life0: life, colors, first, active: first, round: 1, started: Date.now(), events: [], storm: 0,
     players: resolved.map((r, i) => newPlayer(r.name || (i === 0 ? 'You' : `Player ${i + 1}`), r.letters, life, n)),
     named: resolved.map(r => !!r.name),
     dmgTarget: null,
-  };
-  store.undo = [];
-  persist();
-  msg('setupMsg', '');
-  show('table');
-  loadArt();
+  });
 };
 
 // ---------- game rules ----------
@@ -622,6 +661,26 @@ $('startGame').onclick = async () => {
 const G = () => store.game;
 const turnPos = i => (i - G().first + G().n) % G().n;  // 0 for whoever went first
 const alive = () => G().players.map((p, i) => i).filter(i => !G().players[i].out);
+
+// A game begins here and ends here, whichever way it does, so nothing of the last game carries into the next: its undo
+// history, the grouping of the last taps, what each panel was showing, and the art loader, which starts over for the
+// new game's id.
+function beginGame(game) {
+  store.game = game;
+  store.undo = [];
+  lastSnap = { key: null, at: 0 };
+  resetViews();
+  persist();
+  show('table');
+  loadArt();
+}
+function endGame() {
+  store.game = null;
+  store.undo = [];
+  persist();
+  renderHome();
+  show('home');
+}
 
 // Undo history is saved with the game so it survives the phone closing the app. Snapshots keep only the
 // event log's length and leave out the art, so they stay small.
@@ -813,8 +872,8 @@ let swipedAt = 0;
     if (!armed) return;
     swipedAt = Date.now();
     const g = G();
-    if (!g || ui[p].sheet || g.players[p].out) return;
-    if (ui[p].info) { ui[p].info = false; renderTable(); return; }
+    if (!g || SHEETS.includes(view[p]) || g.players[p].out) return;
+    if (view[p] === 'info') { setView(p, 'face'); renderTable(); return; }
     if (g.dmgTarget != null) { if (g.dmgTarget === p) { g.dmgTarget = null; commit(); } return; }
     if (g.n < 2) return;
     g.dmgTarget = p;
@@ -856,7 +915,7 @@ function infoCard(p) {
   });
   card.appendChild(rows);
   card.appendChild(el('small', 'hint', 'Swipe or tap to go back'));
-  card.onclick = () => { ui[p].info = false; renderTable(); };
+  card.onclick = () => { setView(p, 'face'); renderTable(); };
   return card;
 }
 
@@ -896,14 +955,18 @@ function counter(label, value, dec, inc, extra) {
   return c;
 }
 
-// Per-panel view state that isn't part of the game, so it's never saved. sheet is the open overlay
-// ('tax' | 'mana' | 'counters' | null); tools is whether the on-demand toolbar is showing, and timer hides it again.
-const ui = LAYOUTS[6].seats.map(() => ({ sheet: null, info: false, tools: false, timer: null }));
-function setTools(p, on) {
-  clearTimeout(ui[p].timer);
-  ui[p].tools = on;
-  ui[p].timer = on ? setTimeout(() => { setTools(p, false); renderTable(); }, 4000) : null;
+// What each panel is showing apart from the game itself, so it is never saved: 'face', 'tools' (the face with the
+// on-demand toolbar out, which puts itself away after 4 s), 'info' (the status card), or an open sheet ('tax', 'mana'
+// or 'counters'). One value per panel, so a panel can only ever show one of these, and a new game clears them all.
+const SHEETS = ['tax', 'mana', 'counters'];
+const view = LAYOUTS[6].seats.map(() => 'face');
+const viewTimers = [];
+function setView(p, v) {
+  clearTimeout(viewTimers[p]);
+  view[p] = v;
+  viewTimers[p] = v === 'tools' ? setTimeout(() => { setView(p, 'face'); renderTable(); }, 4000) : null;
 }
+function resetViews() { view.forEach((v, p) => setView(p, 'face')); }
 
 // Lucide icons (ISC license), inlined so they work offline and take the text color. Lucide has no experience symbol,
 // so experience is drawn here in the same stroke style: a pair of upswept wings.
@@ -948,7 +1011,7 @@ function renderTable() {
     // In damage mode every panel turns to face the target, who enters the damage from their seat.
     const rot = cellOf(g, g.dmgTarget != null ? g.dmgTarget : p)[1];
     const panel = el('div', `panel r${rot}` + (g.active === p && !pl.out ? ' active' : ''));
-    panel.classList.toggle('tools', !onDemand || ui[p].tools);
+    panel.classList.toggle('tools', !onDemand || view[p] === 'tools');
     panel.style.gridArea = cellOf(g, p)[0];
     const face = el('div', 'face');
     face.appendChild(backdrop(pl));
@@ -994,7 +1057,7 @@ function buildFace(face, p) {
     const c = withIcon('span', cls, name, label);
     c.append(String(value));
     // The chips a look leaves to its tiles open the status card where they do show (Minimal).
-    if (cls && cls.includes('tiled')) { c.onclick = () => { ui[p].info = true; renderTable(); }; c.setAttribute('role', 'button'); }
+    if (cls && cls.includes('tiled')) { c.onclick = () => { setView(p, 'info'); renderTable(); }; c.setAttribute('role', 'button'); }
     badges.appendChild(c);
   };
   // "tiled" chips repeat what the tiles list, so a look whose tiles always show drops them all.
@@ -1029,24 +1092,23 @@ function buildFace(face, p) {
     const vals = tileValues(p, k);
     if (vals) b.insertBefore(vals, b.lastChild);
     b.onclick = () => {
-      setTools(p, false);
-      if (k === 'damage') { G().dmgTarget = p; commit(); return; }
-      ui[p].sheet = k;
+      if (k === 'damage') { setView(p, 'face'); G().dmgTarget = p; commit(); return; }
+      setView(p, k);
       renderTable();
     };
     actions.appendChild(b);
   });
-  const more = withIcon('button', 'more', ui[p].tools ? 'x' : 'ellipsis');
-  more.setAttribute('aria-label', ui[p].tools ? 'Hide tools' : 'Tools');
-  head.onclick = more.onclick = () => { setTools(p, !ui[p].tools); renderTable(); };
+  const more = withIcon('button', 'more', view[p] === 'tools' ? 'x' : 'ellipsis');
+  more.setAttribute('aria-label', view[p] === 'tools' ? 'Hide tools' : 'Tools');
+  head.onclick = more.onclick = () => { setView(p, view[p] === 'tools' ? 'face' : 'tools'); renderTable(); };
   head.setAttribute('role', 'button');
   head.tabIndex = 0;
   head.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); head.onclick(); } };
   const lay = el('div', 'lay');
   lay.append(head, badges, strip, actions, more);
   face.appendChild(lay);
-  if (ui[p].info) face.appendChild(infoCard(p));
-  if (ui[p].sheet) face.appendChild(sheet(p, ui[p].sheet));
+  if (view[p] === 'info') face.appendChild(infoCard(p));
+  else if (SHEETS.includes(view[p])) face.appendChild(sheet(p, view[p]));
   if (pl.out) {
     const out = el('div', 'out');
     out.appendChild(el('div', null, 'Out'));
@@ -1144,11 +1206,11 @@ function sheet(p, kind) {
     const cause = lethalCause(pl);
     const concede = el('button', 'danger', pl.out || cause ? 'Out' : 'Concede');
     concede.disabled = !!pl.out;
-    concede.onclick = () => { snapshot(); eliminate(p, cause || 'concede'); ui[p].sheet = null; commit(); };
+    concede.onclick = () => { snapshot(); eliminate(p, cause || 'concede'); setView(p, 'face'); commit(); };
     btns.appendChild(concede);
   }
   const done = el('button', null, 'Done');
-  done.onclick = () => { ui[p].sheet = null; renderTable(); };
+  done.onclick = () => { setView(p, 'face'); renderTable(); };
   btns.appendChild(done);
   s.appendChild(btns);
   return s;
@@ -1220,12 +1282,10 @@ $('resetLife').onclick = async () => {
   $('menu').classList.add('hidden');
   if (!await ask('Restart with the same players? This game won\'t be saved.', 'Restart')) { $('menu').classList.remove('hidden'); return; }
   const g = G();
-  g.players = g.players.map(pl => Object.assign(newPlayer(pl.name, pl.letters, g.life0, g.n), { partner: pl.partner, art: pl.art, anchor: pl.anchor }));
-  Object.assign(g, { id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()), active: g.first, round: 1,
-    started: Date.now(), events: [], storm: 0, dmgTarget: null });
-  store.undo = [];
-  $('menu').classList.add('hidden');
-  commit();
+  beginGame(Object.assign({}, g, {
+    id: newId(), active: g.first, round: 1, started: Date.now(), events: [], storm: 0, dmgTarget: null,
+    players: g.players.map(pl => Object.assign(newPlayer(pl.name, pl.letters, g.life0, g.n), { partner: pl.partner, art: pl.art, anchor: pl.anchor })),
+  }));
 };
 // Steps your panel one cell clockwise, for a seat noticed after the game started.
 // The same preference Settings and setup set; the table is rebuilt in place so the look changes under the players.
@@ -1247,12 +1307,7 @@ $('moveSeat').onclick = () => {
 $('abandon').onclick = async () => {
   $('menu').classList.add('hidden');
   if (!await ask('Abandon this game? It won\'t be saved.', 'Abandon')) { $('menu').classList.remove('hidden'); return; }
-  store.game = null;
-  store.undo = [];
-  persist();
-  $('menu').classList.add('hidden');
-  renderHome();
-  show('home');
+  endGame();
 };
 
 // ---------- finish ----------
@@ -1278,7 +1333,7 @@ function openFinish() {
   const last = store.lists.last || {};
   fillList('podList', store.lists.pods);
   $('date').value = today();
-  $('pod').value = last.pod || '';
+  $('pod').value = g.pod || last.pod || '';
   seg('power', [{ value: 'Low Power', label: 'Low' }, { value: 'Mid Power', label: 'Mid' },
     { value: 'High Power', label: 'High' }], last.power, summarizeDetails);
   seg('bracket', ['1', '2', '3', '4', '5'], last.bracket, summarizeDetails);
@@ -1309,9 +1364,13 @@ $('saveGame').onclick = () => {
     if (!$('date').value) { $('detailsWrap').open = true; msg('finishMsg', 'Pick a date.', true); return; }
     const w = picked.winner;
     const mySeat = turnPos(0) + 1;
+    const pod = $('pod').value.trim();
+    // The next setup offers this game's pod, power and bracket even before the sheet has them; a sync refreshes the lists.
+    store.lists.last = { pod, power: picked.power, bracket: picked.bracket };
+    if (!store.lists.pods.includes(pod)) store.lists.pods = store.lists.pods.concat(pod).sort();
     store.queue.push({
       id: g.id,
-      setup: { date: $('date').value, pod: $('pod').value.trim(), power: picked.power, bracket: picked.bracket,
+      setup: { date: $('date').value, pod, power: picked.power, bracket: picked.bracket,
         deck: g.players[0].name, opps: g.players.slice(1).map(pl => pl.name), seat: String(mySeat) },
       colors: g.colors,
       winner: w === 'unknown' ? 'Unknown opponent' : w === '0' ? 'Me' : `Opponent ${w}`,
@@ -1325,11 +1384,7 @@ $('saveGame').onclick = () => {
   } else {
     toast('Game ended');
   }
-  store.game = null;
-  store.undo = [];
-  persist();
-  renderHome();
-  show('home');
+  endGame();
   syncQueue();
 };
 
@@ -1337,9 +1392,11 @@ $('saveGame').onclick = () => {
 
 let wakeLock = null;
 async function keepAwake() {
-  try { if ('wakeLock' in navigator && !wakeLock) wakeLock = await navigator.wakeLock.request('screen'); }
-  catch (e) { wakeLock = null; }
-  if (wakeLock) wakeLock.addEventListener('release', () => { wakeLock = null; });
+  if (!('wakeLock' in navigator) || wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (e) { wakeLock = null; }
 }
 function releaseAwake() { if (wakeLock) wakeLock.release().catch(() => {}); wakeLock = null; }
 document.addEventListener('visibilitychange', () => {

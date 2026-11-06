@@ -50,16 +50,16 @@ observable proof.
 
 ## Features
 
-- [New game](./new-game.md) covers the home screen, the setup screen, both looks, and starting, leaving and resuming a game. Journey `new-game`.
+- [New game](./new-game.md) covers the home screen, the setup screen, the suggestion row and taps under it, Cancel during the name check, both looks, and starting, leaving and resuming a game. Journey `new-game`.
 - [Life total](./life-total.md) covers taps, the floating total, press-and-hold, undo grouping, low-life colors, the knockout at zero and Bring back. Journey `life-total`.
 - [Commander damage](./commander-damage.md) covers the Damage tile, the sideways swipe, entering damage from a seat, the tile afterwards and the lethal 21. Journey `commander-damage`.
 - [Tool sheets](./tool-sheets.md) covers Tax, Mana with storm, Counters with the rad reminder, the poison knockout, Concede and Out by hand. Journey `tool-sheets`.
-- [Turns and finish](./turns-and-finish.md) covers passing the turn, rounds, undoing a pass, the options menu, and ending a game that stays on the phone. Journey `turns-and-finish`.
-- [Save game](./save-game.md) covers finishing a fully named 4-player game, the Game details fields, the queue entry and the home screen count. Journey `save-game`.
+- [Turns and finish](./turns-and-finish.md) covers passing the turn, rounds, undoing a pass, the options menu, Restart with same players, Abandon game, and ending a game that stays on the phone. Journey `turns-and-finish`.
+- [Save game](./save-game.md) covers the pod chosen in setup, finishing a fully named 4-player game, the Game details fields, the queue entry, the home screen count and the pod offered back next time. Journey `save-game`.
 
 ## Not yet mapped
 
 These are user-facing and should get a feature file and a journey before a change to them is called verified:
 Settings and the sync test, syncing a queued game to the sheet, the two 4-player layouts and picking
 your seat, Move my seat, partner commanders and the split tax and damage, commander art and its crop, the Minimal
-look's status card (tapping the damage or poison chip), Restart with same players, Abandon game, and 5 and 6 players.
+look's status card (tapping the damage or poison chip), and 5 and 6 players.

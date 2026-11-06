@@ -3,9 +3,16 @@ const NAMES = ["Atraxa, Praetors' Voice", 'Krenko, Mob Boss', "Yuriko, the Tiger
 const DATE = '2026-10-31';
 
 export default async ({ page, app, evidence, assert }) => {
-  await app.newGame({ players: 4, names: NAMES, first: 0 });
+  await app.newGame({ players: 4, names: NAMES, first: 0, onSetup: async () => {
+    assert.ok(!(await app.$('podWrap').evaluate(e => e.classList.contains('hidden'))), 'a 4-player game asks for the pod in setup');
+    assert.equal(await app.$('setupPod').inputValue(), '', 'nothing to pre-fill before a first game');
+    assert.ok(await app.$('podPick').evaluate(e => e.classList.contains('hidden')), 'and no pills until a pod is known');
+    await app.$('setupPod').fill('Tuesday pod');
+    await evidence.shot('setup-pod');
+  } });
   assert.equal(await app.panelCount(), 4);
   assert.deepEqual((await app.game()).named, [true, true, true, true]);
+  assert.equal((await app.game()).pod, 'Tuesday pod', 'the pod is saved with the game');
 
   await app.tapLife(1, -1, 3);
   await app.tapLife(2, 1, 2);
@@ -25,6 +32,8 @@ export default async ({ page, app, evidence, assert }) => {
   assert.ok(!(await app.$('detailsWrap').evaluate(e => e.classList.contains('hidden'))), 'Game details show');
   assert.equal(await app.$('turns').inputValue(), '1');
   assert.equal(await app.$('elim').inputValue(), '1', 'the first elimination is pre-filled from the knockout');
+  assert.equal(await app.$('pod').inputValue(), 'Tuesday pod', 'the pod from setup is pre-filled under Game details');
+  assert.match(await app.$('detailsSummary').textContent(), /Tuesday pod/, 'and shows in the summary while the details are closed');
 
   await app.seg('winner', 'Krenko, Mob Boss').tap();
   await app.seg('victory', 'Combat Damage').tap();
@@ -38,7 +47,6 @@ export default async ({ page, app, evidence, assert }) => {
   assert.ok(await app.$('detailsWrap').evaluate(e => e.open), 'the refusal opens Game details');
   assert.equal(await app.screen(), 'finish');
   await app.$('date').fill(DATE);
-  await app.$('pod').fill('Tuesday pod');
   await app.seg('power', 'Mid').tap();
   await app.seg('bracket', '3').tap();
   await app.$('date').fill('');
@@ -78,4 +86,22 @@ export default async ({ page, app, evidence, assert }) => {
   await evidence.shot('home-after-save');
   await evidence.storeDump('after-save');
   evidence.note('4-player game saved to the queue', { id: q.id, winner: q.winner, eliminations: q.eliminations.length });
+
+  // The next setup offers the saved game's pod back, before any sync: pre-filled, with its pill lit.
+  assert.deepEqual(store.lists.pods, ['Tuesday pod']);
+  assert.deepEqual(store.lists.last, { pod: 'Tuesday pod', power: 'Mid Power', bracket: '3' });
+  await app.$('newGame').tap();
+  await app.$('setup').waitFor({ state: 'visible' });
+  await app.seg('playerCount', '4').tap();
+  assert.equal(await app.$('setupPod').inputValue(), 'Tuesday pod', 'the next setup is pre-filled with the last pod');
+  const pill = app.$('podPick').getByRole('button', { name: 'Tuesday pod' });
+  assert.ok(await pill.evaluate(e => e.classList.contains('on')), 'and its pill is lit');
+  await app.$('setupPod').fill('Thursday');
+  assert.ok(!(await pill.evaluate(e => e.classList.contains('on'))), 'typing another pod unlights it');
+  await pill.tap();
+  assert.equal(await app.$('setupPod').inputValue(), 'Tuesday pod', 'a tap on a pill fills the field');
+  await evidence.shot('setup-pod-pill');
+  await app.$('cancelSetup').tap();
+  assert.equal(await app.screen(), 'home');
+  evidence.note('the next setup offers the saved pod', { pods: store.lists.pods });
 };

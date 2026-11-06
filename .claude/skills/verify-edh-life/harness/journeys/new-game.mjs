@@ -41,6 +41,14 @@ export default async ({ page, app, evidence, assert }) => {
     await app.$('seat1').fill('kren');
     await suggestion('kren').waitFor({ timeout: 3000 })
       .catch(() => assert.fail('a rate-limited lookup is forgotten, so the next letters ask Scryfall again'));
+    // A tap on a button below the showing row lands: the row hides once the tap is over, not at the press, so nothing
+    // moves up under the finger between press and release.
+    const firstPicked = () => app.$('first').locator('button.on').allTextContents();
+    assert.deepEqual(await firstPicked(), ['You']);
+    await app.seg('first', 'Opponent 1').tap();
+    assert.deepEqual(await firstPicked(), ['Opponent 1'], 'a tap below the suggestion row picks on the first try');
+    assert.ok(await page.locator('#suggest').isHidden(), 'and the row hides once the tap has landed');
+    await app.seg('first', 'You').tap();
     await app.$('seat1').fill('kellan');
     const front = page.locator('#suggest').getByRole('button', { name: ADVENTURE.faces[0], exact: true });
     await front.waitFor({ timeout: 3000 })
@@ -53,7 +61,11 @@ export default async ({ page, app, evidence, assert }) => {
     assert.ok(await page.locator('#suggest').isHidden(), 'and the row goes with it');
   };
   await app.newGame({ players: 2, life: 40, look: 'companion', names: [NAMES[0]], first: 0,
-    onSetup: async () => { await evidence.shot('setup-filled'); await suggestions(); } });
+    onSetup: async () => {
+      assert.ok(await app.$('podWrap').evaluate(e => e.classList.contains('hidden')), 'the pod is asked only for the 4-player games that reach the sheet');
+      await evidence.shot('setup-filled');
+      await suggestions();
+    } });
   assert.equal(await app.screen(), 'table');
   assert.equal(await app.panelCount(), 2);
   assert.equal(await app.life(0), 40);
@@ -125,4 +137,35 @@ export default async ({ page, app, evidence, assert }) => {
   await page.waitForTimeout(4300);
   assert.ok(!(await app.panel(0).evaluate(e => e.classList.contains('tools'))), 'the tiles hide again after 4 s');
   evidence.note('minimal game started', { players: g.n, life: g.life0, first: g.first });
+
+  // While the names are being checked, Start game is disabled, and Cancel cancels the check: no game starts later.
+  await app.openMenu();
+  await app.$('toHome').tap();
+  let lookups = 0;
+  await page.route('https://api.scryfall.com/cards/named**', async route => { lookups++; await new Promise(r => setTimeout(r, 600)); await route.fallback(); });
+  await app.$('newGame').tap();
+  await app.$('confirmOk').tap();
+  await app.$('setup').waitFor({ state: 'visible' });
+  await app.seg('playerCount', '2').tap();
+  await app.$('seat0').fill('Sisay, Weatherlight Captain');
+  await app.$('seat1').fill('Ghave, Guru of Spores');
+  await app.seg('first', 'You').tap();
+  await app.$('startGame').tap();
+  assert.equal(await app.$('setupMsg').textContent(), 'Checking names…');
+  assert.ok(await app.$('startGame').isDisabled(), 'Start game is disabled while the names are checked');
+  await evidence.shot('checking-names');
+  await app.$('cancelSetup').tap();
+  assert.equal(await app.screen(), 'home');
+  await page.waitForTimeout(3000);
+  assert.equal(await app.screen(), 'home', 'the cancelled check starts no game once its answers arrive');
+  assert.equal((await app.game()).n, 3, 'the kept game is still the kept game');
+  assert.equal(lookups, 2, 'one lookup per name');
+  await page.unroute('https://api.scryfall.com/cards/named**');
+  await app.$('newGame').tap();
+  await app.$('confirmOk').tap();
+  await app.$('setup').waitFor({ state: 'visible' });
+  assert.ok(!(await app.$('startGame').isDisabled()), 'a new visit to setup starts with Start game enabled');
+  assert.equal(await app.$('setupMsg').textContent(), '');
+  await app.$('cancelSetup').tap();
+  evidence.note('cancel during the name check cancelled it', { lookups });
 };

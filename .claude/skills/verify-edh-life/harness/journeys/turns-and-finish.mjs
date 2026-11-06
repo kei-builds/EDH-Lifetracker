@@ -48,6 +48,37 @@ export default async ({ page, app, evidence, assert }) => {
   assert.equal(await app.life(0), 40);
   evidence.note('left for home and resumed');
 
+  // Restart with the same players begins a new game: the sheet left open, the undo history and the turn go with the old one.
+  await app.tapLife(1, -1, 2);
+  await app.$('pass').tap();
+  await app.openTool(1, 'mana');
+  const oldId = g.id;
+  await app.openMenu();
+  await app.$('resetLife').tap();
+  await app.$('confirmOk').tap();
+  g = await app.game();
+  assert.notEqual(g.id, oldId, 'a restart is a new game');
+  assert.equal(g.round, 1);
+  assert.equal(g.active, 0);
+  assert.deepEqual(g.players.map(p => p.name), NAMES, 'with the same players');
+  assert.equal(await app.life(1), 40, 'back at the starting life');
+  assert.equal(await app.sheet(1).count(), 0, 'the sheet left open on the old game is gone');
+  assert.equal((await app.store()).undo.length, 0, 'and so is its undo history');
+  await app.$('undo').tap();
+  assert.equal(await app.$('toast').textContent(), 'Nothing to undo');
+  await evidence.shot('restarted');
+  // Abandon ends it, and a sheet left open then is not waiting in the next game either.
+  await app.openTool(0, 'mana');
+  await app.openMenu();
+  await app.$('abandon').tap();
+  await app.$('confirmOk').tap();
+  assert.equal(await app.screen(), 'home');
+  assert.equal((await app.store()).game, null);
+  assert.ok(await app.$('resumeGame').evaluate(e => e.classList.contains('hidden')), 'nothing to resume');
+  await app.newGame({ players: 3, names: NAMES, first: 0 });
+  assert.equal(await app.sheet(0).count(), 0, 'a new game starts with every panel on its face');
+  evidence.note('restarted with a sheet open, abandoned with a sheet open, and the next game started clean');
+
   await app.openMenu();
   await app.$('finishNow').tap();
   assert.equal(await app.screen(), 'finish');
