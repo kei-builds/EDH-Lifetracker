@@ -107,6 +107,7 @@ function toast(text) {
   toast.timer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 // A yes/no question in the app's own card. The browser's confirm dialog is swallowed by some webviews and looks foreign on a phone.
+// The card's backdrop covers the screen, so nothing beneath can be tapped while the question is open; a tap on it, like Escape, answers No.
 function ask(text, okLabel) {
   return new Promise(resolve => {
     $('confirmText').textContent = text;
@@ -117,6 +118,7 @@ function ask(text, okLabel) {
     document.addEventListener('keydown', onKey);
     $('confirmOk').onclick = () => done(true);
     $('confirmCancel').onclick = () => done(false);
+    $('confirm').onclick = e => { if (e.target === $('confirm')) done(false); };
     $('confirmOk').focus();
   });
 }

@@ -48,5 +48,5 @@ Preconditions:
 - The round only rises when the turn reaches a position at or before the first player's, so with the first player Out it still counts correctly, but asserting `round` after knockouts needs that in mind.
 - The toast lives 2.2 s; read it right after the tap.
 - The `Save game` path, with Game details, pod and power required and a `queue` entry written, only happens for 4 players with every seat named, and is not covered by this journey.
-- `Restart with same players` and `Abandon game` each show a confirmation card (`#confirm`); `Cancel` on it reopens the menu.
+- `Restart with same players` and `Abandon game` each show a confirmation card (`#confirm`); `Cancel` on it reopens the menu. The card's backdrop covers the table, so a tap on a life half while the question is open changes nothing: it answers No.
 - A restart keeps the art already loaded and starts the loader again for what is missing; the harness stub has no art, so that part is not proven here.

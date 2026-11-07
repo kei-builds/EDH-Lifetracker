@@ -52,6 +52,7 @@ Preconditions:
 
 - With 4 players every seat must have a name or Start game refuses with `Fill in every commander so the game can go to your sheet.` Fewer players may leave seats blank.
 - Unknown names are looked up on Scryfall. Under the stub every name resolves; under `EDH_SCRYFALL=block` a `Couldn't find ... Start anyway?` card appears and `newGame` needs `startAnyway: true`.
+- The question card (`#confirm`) sits on a backdrop that covers the screen: nothing beneath it can be tapped while it is open, and a tap on the backdrop answers No, the same as `Cancel` or Escape. A tap aimed at `Cancel setup` under an open card dismisses the card and stays on setup.
 - The stub's exact lookup answers either face of its adventure card with the whole card (named by both faces, red-white) and, like Scryfall, finds nothing for the two-faced name itself; every other name resolves as typed.
 - The seat picker (`#seatPick`) and the 4-player layout row only show for 4 players and are not covered by this journey.
 - `Pick at random` picks who goes first and shows a toast; the journey always picks explicitly.

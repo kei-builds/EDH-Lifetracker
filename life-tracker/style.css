@@ -297,8 +297,9 @@ button.ctrName:active { background: rgba(255, 255, 255, .1); border-radius: 6px;
 .menu a { display: flex; align-items: center; justify-content: center; gap: 6px; color: inherit; text-decoration: none; }
 .menu a::after { content: '\2197'; font-size: 13px; opacity: .7; }
 .menu .danger { color: var(--danger); border-color: rgba(224, 72, 61, .7); }
-/* The question card is outside the table screen so it can also ask from the home screen. */
-.confirm { position: fixed; z-index: 30; }
+/* The question card is outside the table screen so it can also ask from the home screen. Its backdrop takes every tap
+   meant for the screen beneath, so nothing changes under an open question; a tap on it answers No. */
+.confirm { position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, .55); }
 .menu p { margin: 2px 4px 6px; text-align: center; font-family: var(--cond); font-weight: 600; font-size: 17px; line-height: 1.3; letter-spacing: .02em; }
 #closeMenu, #radClose { border: 2px solid var(--accent); background: rgba(40, 40, 110, .55); }
 /* The rad reminder is the question card holding the Radiation token. Its .face is turned like the opener's panel, and on a
