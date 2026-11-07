@@ -147,24 +147,35 @@ const today = () => {
 
 // ---------- sync ----------
 
+const SYNC_TIMEOUT = 30000;
+
+// One request to the sync script. A request that stalls is given up after SYNC_TIMEOUT, so a dropped connection never
+// leaves the queue stuck behind it; the script ignores a game it already has, so trying again is safe.
 async function api(game) {
   const { url, key } = store.settings;
   if (!url || !key) throw new Error('Add your sync URL and key in Settings.');
-  let res;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), SYNC_TIMEOUT);
+  const fail = text => new Error(ctl.signal.aborted ? `Your sync URL didn't answer within ${SYNC_TIMEOUT / 1000} seconds.` : text);
   try {
-    res = game
-      ? await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ key, game }) })
-      : await fetch(`${url}?key=${encodeURIComponent(key)}`);
-  } catch (e) {
-    throw new Error('Couldn\'t reach your sync URL. Check the address and your connection.');
+    let res;
+    try {
+      res = game
+        ? await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ key, game }), signal: ctl.signal })
+        : await fetch(`${url}?key=${encodeURIComponent(key)}`, { signal: ctl.signal });
+    } catch (e) {
+      throw fail('Couldn\'t reach your sync URL. Check the address and your connection.');
+    }
+    let data;
+    try { data = await res.json(); } catch (e) {
+      throw fail('That URL didn\'t answer like the sync script. Check it\'s deployed with access set to Anyone.');
+    }
+    if (!data.ok) throw new Error(data.error || 'Sync failed.');
+    return data;
+  } finally {
+    clearTimeout(timer);
   }
-  let data;
-  try { data = await res.json(); } catch (e) {
-    throw new Error('That URL didn\'t answer like the sync script. Check it\'s deployed with access set to Anyone.');
-  }
-  if (!data.ok) throw new Error(data.error || 'Sync failed.');
-  return data;
 }
 
 async function refreshLists() {
