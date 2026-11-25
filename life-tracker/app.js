@@ -61,12 +61,32 @@ function defaults() {
     listsAt: 0, prefs: { life: '40', players: '4', layout: 'ends', theme: 'companion' }, game: null, undo: [], queue: [], radArt: '' };
 }
 const store = (() => {
-  try { return Object.assign(defaults(), JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); }
-  catch (e) { return defaults(); }
+  const base = defaults();
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {};
+    return Object.assign(base, raw, {
+      settings: Object.assign(base.settings, raw.settings || {}),
+      lists: Object.assign(base.lists, raw.lists || {}),
+      prefs: Object.assign(base.prefs, raw.prefs || {}),
+      undo: Array.isArray(raw.undo) ? raw.undo : [],
+      queue: Array.isArray(raw.queue) ? raw.queue : [],
+    });
+  } catch (e) { return base; }
 })();
 const newId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
 function persist() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* storage unavailable */ }
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(store));
+    return true;
+  } catch (e) {
+    // Storage full: drop undo history first so the active game and sync queue still save.
+    if (store.undo.length) {
+      store.undo = [];
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); return true; } catch (e2) { /* still full */ }
+    }
+    toast('Storage full — could not save');
+    return false;
+  }
 }
 function applyTheme() {
   if (!THEMES[store.prefs.theme]) store.prefs.theme = 'companion';
@@ -108,18 +128,20 @@ function toast(text) {
 }
 // A yes/no question in the app's own card. The browser's confirm dialog is swallowed by some webviews and looks foreign on a phone.
 // The card's backdrop covers the screen, so nothing beneath can be tapped while the question is open; a tap on it, like Escape, answers No.
-function ask(text, okLabel) {
+function ask(text, okLabel, { danger = true } = {}) {
   return new Promise(resolve => {
     $('confirmText').textContent = text;
-    $('confirmOk').textContent = okLabel;
+    const ok = $('confirmOk');
+    ok.textContent = okLabel;
+    ok.classList.toggle('danger', danger);
     $('confirm').classList.remove('hidden');
     const done = yes => { $('confirm').classList.add('hidden'); document.removeEventListener('keydown', onKey); resolve(yes); };
     const onKey = e => { if (e.key === 'Escape') done(false); };
     document.addEventListener('keydown', onKey);
-    $('confirmOk').onclick = () => done(true);
+    ok.onclick = () => done(true);
     $('confirmCancel').onclick = () => done(false);
     $('confirm').onclick = e => { if (e.target === $('confirm')) done(false); };
-    $('confirmOk').focus();
+    (danger ? $('confirmCancel') : ok).focus();
   });
 }
 function msg(id, text, isError) {
@@ -150,39 +172,59 @@ const today = () => {
 // ---------- sync ----------
 
 const SYNC_TIMEOUT = 30000;
+const hasSync = () => !!(store.settings.url && store.settings.key);
 
 // One request to the sync script. A request that stalls is given up after SYNC_TIMEOUT, so a dropped connection never
 // leaves the queue stuck behind it; the script ignores a game it already has, so trying again is safe.
+// Both game saves and list fetches use POST so the sync key never sits in a URL query string; if an older deployed
+// script rejects the lists POST with "Missing game.", fall back once to GET.
 async function api(game) {
   const { url, key } = store.settings;
   if (!url || !key) throw new Error('Add your sync URL and key in Settings.');
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), SYNC_TIMEOUT);
-  const fail = text => new Error(ctl.signal.aborted ? `Your sync URL didn't answer within ${SYNC_TIMEOUT / 1000} seconds.` : text);
-  try {
-    let res;
+  let parsedUrl;
+  try { parsedUrl = new URL(url); } catch (e) { throw new Error('That sync URL is not a valid address.'); }
+  if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') throw new Error('Sync URL must start with https://.');
+  const send = async (method, payload) => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), SYNC_TIMEOUT);
+    const fail = text => new Error(ctl.signal.aborted ? `Your sync URL didn't answer within ${SYNC_TIMEOUT / 1000} seconds.` : text);
     try {
-      res = game
-        ? await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ key, game }), signal: ctl.signal })
-        : await fetch(`${url}?key=${encodeURIComponent(key)}`, { signal: ctl.signal });
-    } catch (e) {
-      throw fail('Couldn\'t reach your sync URL. Check the address and your connection.');
+      let res;
+      try {
+        if (method === 'POST') {
+          res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload), signal: ctl.signal });
+        } else {
+          const u = new URL(url);
+          u.searchParams.set('key', key);
+          res = await fetch(u.toString(), { signal: ctl.signal });
+        }
+      } catch (e) {
+        throw fail('Couldn\'t reach your sync URL. Check the address and your connection.');
+      }
+      let data;
+      try { data = await res.json(); } catch (e) {
+        throw fail('That URL didn\'t answer like the sync script. Check it\'s deployed with access set to Anyone.');
+      }
+      return data;
+    } finally {
+      clearTimeout(timer);
     }
-    let data;
-    try { data = await res.json(); } catch (e) {
-      throw fail('That URL didn\'t answer like the sync script. Check it\'s deployed with access set to Anyone.');
-    }
-    if (!data.ok) throw new Error(data.error || 'Sync failed.');
-    return data;
-  } finally {
-    clearTimeout(timer);
-  }
+  };
+  let data = await send('POST', game ? { key, game } : { key, action: 'lists' });
+  if (!game && !data.ok && data.error === 'Missing game.') data = await send('GET');
+  if (!data.ok) throw new Error(data.error || 'Sync failed.');
+  return data;
 }
 
 async function refreshLists() {
   const data = await api();
-  store.lists = { decks: data.decks, commanders: data.commanders, pods: data.pods, last: data.last };
+  store.lists = {
+    decks: Array.isArray(data.decks) ? data.decks : [],
+    commanders: Array.isArray(data.commanders) ? data.commanders : [],
+    pods: Array.isArray(data.pods) ? data.pods : [],
+    last: data.last && typeof data.last === 'object' ? data.last : {},
+  };
   store.listsAt = Date.now();
   persist();
 }
@@ -190,23 +232,28 @@ async function refreshLists() {
 let syncing = false;
 let syncError = '';
 async function syncQueue() {
-  if (syncing || !store.queue.length || !store.settings.url) { renderHome(); return; }
+  if (syncing || !store.queue.length || !hasSync()) { renderHome(); return; }
   syncing = true;
   syncError = '';
   renderHome();
+  let syncedAny = false;
   try {
     while (store.queue.length) {
       await api(store.queue[0]);
       store.queue.shift();
+      syncedAny = true;
       persist();
     }
     toast('Synced to your sheet');
-    await refreshLists().catch(() => {});
   } catch (e) {
     syncError = e.message;
   } finally {
     syncing = false;
     renderHome();
+  }
+  if (syncedAny) {
+    await refreshLists().catch(() => {});
+    if (store.queue.length) syncQueue();
   }
 }
 window.addEventListener('online', syncQueue);
@@ -221,11 +268,12 @@ function renderHome() {
   let text = q ? `${games} waiting to sync.` : 'All games synced.';
   if (syncing) text = 'Syncing…';
   else if (q && syncError) text += ` Last try: ${syncError}`;
-  if (!store.settings.url) {
+  if (!hasSync()) {
     text = (q ? `${games} saved on this phone. ` : '') + 'Add your sync URL and key in Settings to send games to your sheet.';
   }
   $('syncStatus').textContent = text;
-  $('syncNow').classList.toggle('hidden', !q || syncing || !store.settings.url);
+  $('syncNow').classList.toggle('hidden', !q || syncing || !hasSync());
+  $('queueHelp').classList.toggle('hidden', !q || syncing || !syncError);
 }
 
 // The Look row, in Settings and in setup. Both set the one pref, so the next table drawn follows whichever was picked last.
@@ -240,10 +288,19 @@ function lookRow(id) {
 $('openSettings').onclick = () => {
   $('setUrl').value = store.settings.url;
   $('setKey').value = store.settings.key;
+  $('setKey').type = 'password';
+  $('toggleKey').textContent = 'Show';
+  $('toggleKey').setAttribute('aria-label', 'Show sync key');
   lookRow('theme');
   $('setArt').checked = store.prefs.art !== false;
   msg('settingsMsg', '');
   show('settings');
+};
+$('toggleKey').onclick = () => {
+  const showKey = $('setKey').type === 'password';
+  $('setKey').type = showKey ? 'text' : 'password';
+  $('toggleKey').textContent = showKey ? 'Hide' : 'Show';
+  $('toggleKey').setAttribute('aria-label', showKey ? 'Hide sync key' : 'Show sync key');
 };
 $('closeSettings').onclick = () => { renderHome(); show('home'); };
 $('setArt').onchange = () => { store.prefs.art = $('setArt').checked; persist(); };
@@ -260,6 +317,24 @@ $('saveSettings').onclick = async () => {
   }
 };
 $('syncNow').onclick = syncQueue;
+$('copyQueued').onclick = async () => {
+  if (!store.queue.length) return;
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(store.queue[0], null, 2));
+    toast('Copied game backup');
+  } catch (e) {
+    toast('Could not copy backup');
+  }
+};
+$('discardQueued').onclick = async () => {
+  if (!store.queue.length) return;
+  if (!await ask('Discard the oldest failed game so the rest can sync? Copy a backup first if you want to keep it.', 'Discard')) return;
+  store.queue.shift();
+  syncError = '';
+  persist();
+  renderHome();
+  if (store.queue.length) syncQueue();
+};
 
 // ---------- names ----------
 
@@ -304,11 +379,15 @@ async function scryfallExact(name) {
     return c ? { name: c.name.split(' // ')[0], full: c.name, ci: c.color_identity } : null;
   };
   try {
-    const halves = name.split(' // ').map(h => h.trim());
-    let r = await one(halves[0]);
-    if (r && halves.length > 1 && r.full.toLowerCase() !== name.toLowerCase()) {
-      const parts = await Promise.all(halves.map(one));
-      r = parts.every(Boolean) ? { name: parts.map(p => p.name).join(' // '), ci: [].concat(...parts.map(p => p.ci)) } : null;
+    const partsRaw = name.split(' // ').map(h => h.trim()).filter(Boolean);
+    if (!partsRaw.length) return null;
+    const norm = partsRaw.join(' // ');
+    let r = await one(partsRaw[0]);
+    if (r && partsRaw.length > 1 && r.full.toLowerCase() !== norm.toLowerCase()) {
+      const parts = await Promise.all(partsRaw.map(one));
+      if (!parts.every(Boolean)) r = null;
+      else if (parts.length === 2 && parts[0].full === parts[1].full) r = parts[0];
+      else r = { name: parts.map(p => p.name).join(' // '), ci: [].concat(...parts.map(p => p.ci)) };
     }
     if (!r) return null;
     const order = 'WUBRG';
@@ -326,12 +405,12 @@ async function cardArt(name) {
     return uris ? uris.art_crop : null;
   };
   try {
+    if (name.includes(' // ')) {
+      const parts = (await Promise.all(name.split(' // ').map(p => one(p.trim())))).filter(Boolean);
+      if (parts.length) return parts;
+    }
     const whole = await one(name);
     if (whole) return [whole];
-    if (name.includes(' // ')) {
-      const parts = await Promise.all(name.split(' // ').map(p => one(p.trim())));
-      if (parts.every(Boolean)) return parts;
-    }
   } catch (e) { /* offline */ }
   return null;
 }
@@ -341,13 +420,14 @@ async function cardArt(name) {
 // that region's top, since a subject's face sits at its top. Measured once per image on a 96 px copy. null when the
 // image can't be read, which keeps the default crop.
 async function artAnchor(url) {
+  let bmp = null;
   try {
     // Art cached before anchors existed was stored opaque, which a readable request rejects outright; a fresh copy
     // under a new query is readable.
     let res = await fetch(url, { mode: 'cors' }).catch(() => null);
     if (!res || !res.ok) res = await fetch(url + (url.includes('?') ? '&' : '?') + 'cors=1', { mode: 'cors' });
     if (!res.ok) return null;
-    const bmp = await createImageBitmap(await res.blob());
+    bmp = await createImageBitmap(await res.blob());
     const W = 96, H = Math.max(8, Math.round(W * bmp.height / bmp.width));
     const cv = document.createElement('canvas');
     cv.width = W;
@@ -383,24 +463,33 @@ async function artAnchor(url) {
     return [Math.round(fx * 100), Math.round(fy * 100)];
   } catch (err) {
     return null;
+  } finally {
+    if (bmp && bmp.close) bmp.close();
   }
 }
 
 // Fills in art for named players in the background, so starting a game never waits on it, and measures where each
 // image's subject is so the panel crops to it. Games saved before anchors existed get theirs here too.
+let loadingArtFor = null;
 async function loadArt() {
   const g = G();
   if (!g || !navigator.onLine || store.prefs.art === false) return;
   const id = g.id;
-  for (const i of g.players.map((pl, n) => n).filter(n => g.named[n] && !(g.players[n].art && g.players[n].anchor))) {
-    const art = G().players[i].art || await cardArt(G().players[i].name);
-    if (!G() || G().id !== id) return;
-    if (!art) continue;
-    const anchor = [];
-    for (const u of art) anchor.push(await artAnchor(u));
-    if (!G() || G().id !== id) return;
-    Object.assign(G().players[i], { art, anchor });
-    commit();
+  if (loadingArtFor === id) return;
+  loadingArtFor = id;
+  try {
+    for (const i of g.players.map((pl, n) => n).filter(n => g.named[n] && !(g.players[n].art && g.players[n].anchor))) {
+      const art = G().players[i].art || await cardArt(G().players[i].name);
+      if (!G() || G().id !== id) return;
+      if (!art) continue;
+      const anchor = [];
+      for (const u of art) anchor.push(await artAnchor(u));
+      if (!G() || G().id !== id) return;
+      Object.assign(G().players[i], { art, anchor });
+      commit();
+    }
+  } finally {
+    if (loadingArtFor === id) loadingArtFor = null;
   }
 }
 window.addEventListener('online', () => loadArt());
@@ -457,24 +546,42 @@ function showSuggestions(input, names) {
 }
 let acTimer = null;
 let acLast = null;
+let acAbort = null;
 function autocomplete(e) {
   const input = e.target;
   const q = input.value.trim();
   const lq = q.toLowerCase();
   clearTimeout(acTimer);
-  const suggest = names => showSuggestions(input,
-    [...new Set(knownNames().concat(names.map(n => n.split(' // ')[0])))].filter(n => lq && n.toLowerCase().includes(lq)));
+  if (acAbort) { acAbort.abort(); acAbort = null; }
+  const suggest = names => {
+    const seen = new Set();
+    const out = [];
+    if (lq) {
+      knownNames().concat(names.map(n => n.split(' // ')[0])).forEach(n => {
+        const key = n.toLowerCase();
+        if (!seen.has(key) && key.includes(lq)) { seen.add(key); out.push(n); }
+      });
+    }
+    showSuggestions(input, out);
+  };
   if (acLast && acLast.complete && lq.startsWith(acLast.q)) { suggest(acLast.names); return; }
   suggest([]);
   if (q.length < 3 || !navigator.onLine) return;
   acTimer = setTimeout(async () => {
+    const ctl = new AbortController();
+    acAbort = ctl;
     try {
-      const res = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(q)}`);
+      const wait = Math.max(0, sfLast + 120 - Date.now());
+      if (wait) await new Promise(r => setTimeout(r, wait));
+      if (ctl.signal.aborted) return;
+      const res = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(q)}`, { signal: ctl.signal })
+        .finally(() => { sfLast = Date.now(); });
       if (!res.ok) return;
       const names = (await res.json()).data || [];
       acLast = { q: lq, names, complete: names.length < 20 };
       if (document.activeElement === input && input.value.trim().toLowerCase() === lq) suggest(names);
-    } catch (err) { /* offline: keep the known list */ }
+    } catch (err) { /* offline or superseded: keep the known list */ }
+    finally { if (acAbort === ctl) acAbort = null; }
   }, 250);
 }
 
@@ -536,6 +643,7 @@ function renderSeats() {
     const lab = el('label');
     // Seats are numbered in turn order, clockwise from you; where each one sits follows from that.
     lab.textContent = i === 0 ? 'Your deck' : `Opponent ${i}`;
+    lab.htmlFor = `seat${i}`;
     const input = el('input');
     input.id = `seat${i}`;
     input.autocomplete = 'off';
@@ -575,7 +683,8 @@ function renderSeats() {
 let setup = { state: 'closed' };
 function setupState(state) {
   setup = { state };
-  $('startGame').disabled = state === 'checking';
+  const checking = state === 'checking';
+  document.querySelectorAll('#setup input, #setup button:not(#cancelSetup)').forEach(el => { el.disabled = checking; });
   return setup;
 }
 
@@ -633,11 +742,20 @@ function newPlayer(name, letters, life, n) {
 
 $('startGame').onclick = async () => {
   if (setup.state !== 'draft') return;
-  const n = Number(picked.playerCount);
-  const key = layoutKey(n, picked.layout);
+  const playersPref = picked.playerCount;
+  const lifePref = picked.startLife;
+  const layoutPref = picked.layout || 'ends';
+  const n = Number(playersPref);
+  const key = layoutKey(n, layoutPref);
+  const seat = picked.seatBy[key] || 0;
+  const pod = $('setupPod').value.trim();
   const seatNames = LAYOUTS[key].seats.map((s, i) => [$(`seat${i}`).value.trim()].concat(picked.partner[i] ? [$(`partner${i}`).value.trim()] : []));
   if (picked.first === '') { msg('setupMsg', 'Pick who goes first.', true); return; }
+  const first = Number(picked.first);
   if (seatNames.some(h => h.length > 1 && !(h[0] && h[1]))) { msg('setupMsg', 'Type both partners\' names, or turn Partner off.', true); return; }
+  if (seatNames.some(h => h.length > 1 && (h[0].includes(' // ') || h[1].includes(' // ')))) {
+    msg('setupMsg', 'Put one commander in each Partner box.', true); return;
+  }
   // A partner pair becomes "First // Second", the way it has always been typed, so everything downstream reads it unchanged.
   const typed = seatNames.map(h => h.join(' // '));
   if (n === 4 && typed.some(t => !t)) { msg('setupMsg', 'Fill in every commander so the game can go to your sheet.', true); return; }
@@ -647,21 +765,19 @@ $('startGame').onclick = async () => {
   if (setup !== run) return;
   const unknown = resolved.filter(r => r.name && r.letters == null).map(r => r.name);
   if (unknown.length) {
-    const anyway = await ask(`Couldn't find ${unknown.join(', ')} on Scryfall. Start anyway?`, 'Start anyway');
+    const anyway = await ask(`Couldn't find ${unknown.join(', ')} on Scryfall. Start anyway?`, 'Start anyway', { danger: false });
     if (setup !== run) return;
     if (!anyway) { setupState('draft'); msg('setupMsg', 'Check the spelling and try again.', true); return; }
   }
-  const life = Number(picked.startLife);
-  const seat = picked.seatBy[key] || 0;
-  Object.assign(store.prefs, { life: picked.startLife, players: picked.playerCount, layout: picked.layout || 'ends',
+  const life = Number(lifePref);
+  Object.assign(store.prefs, { life: lifePref, players: playersPref, layout: layoutPref,
     seat: Object.assign({}, store.prefs.seat, { [key]: seat }) });
   const colors = {};
   resolved.forEach(r => { if (!r.known && r.letters != null) colors[r.name] = r.letters; });
-  const first = Number(picked.first);
   setupState('closed');
   msg('setupMsg', '');
   beginGame({
-    id: newId(), pod: $('setupPod').value.trim(),
+    id: newId(), pod,
     n, layout: key, seat, life0: life, colors, first, active: first, round: 1, started: Date.now(), events: [], storm: 0,
     players: resolved.map((r, i) => newPlayer(r.name || (i === 0 ? 'You' : `Player ${i + 1}`), r.letters, life, n)),
     named: resolved.map(r => !!r.name),
@@ -682,6 +798,7 @@ function beginGame(game) {
   store.game = game;
   store.undo = [];
   lastSnap = { key: null, at: 0 };
+  clearDeltas();
   resetViews();
   persist();
   show('table');
@@ -690,6 +807,9 @@ function beginGame(game) {
 function endGame() {
   store.game = null;
   store.undo = [];
+  lastSnap = { key: null, at: 0 };
+  clearDeltas();
+  resetViews();
   persist();
   renderHome();
   show('home');
@@ -720,6 +840,7 @@ function undo() {
   const g = G();
   const prev = JSON.parse(store.undo.pop());
   lastSnap = { key: null, at: 0 };
+  clearDeltas();
   prev.events = g.events.slice(0, prev.events);
   prev.players.forEach((pl, i) => { pl.art = g.players[i] && g.players[i].art; pl.anchor = g.players[i] && g.players[i].anchor; });
   store.game = prev;
@@ -728,7 +849,7 @@ function undo() {
 function logEvent(e) {
   G().events.push(Object.assign({ t: Math.round((Date.now() - G().started) / 1000), r: G().round }, e));
 }
-function commit() { persist(); renderTable(); }
+function commit() { persist(); if (!$('table').classList.contains('hidden')) renderTable(); }
 
 function changeLife(p, d) {
   snapshot(`life ${p}`);
@@ -796,8 +917,18 @@ function eliminate(p, cause) {
 // them alive. The turn stays where it is; Undo is what rewinds a knockout made a moment ago.
 function bringBack(p) {
   snapshot();
-  G().players[p].out = null;
+  const g = G();
+  g.players[p].out = null;
   logEvent({ p, back: true });
+  // If play resumes while the stored active player is still out, move active to the next living player.
+  if (g.players[g.active].out && alive().length > 1) {
+    let next = g.active;
+    for (let i = 0; i < g.n; i++) {
+      next = (next + 1) % g.n;
+      if (!g.players[next].out) break;
+    }
+    g.active = next;
+  }
   commit();
 }
 function advanceTurn() {
@@ -814,37 +945,60 @@ function advanceTurn() {
 }
 
 const deltas = {};
+function clearDeltas() {
+  Object.keys(deltas).forEach(k => { clearTimeout(deltas[k].timer); delete deltas[k]; });
+}
 function showDelta(p, d) {
   const cur = deltas[p] || { sum: 0 };
   clearTimeout(cur.timer);
   cur.sum += d;
   cur.at = Date.now();
-  cur.timer = setTimeout(() => { delete deltas[p]; if (G()) renderTable(); }, 1500);
+  cur.timer = setTimeout(() => { delete deltas[p]; if (G() && !$('table').classList.contains('hidden')) renderTable(); }, 1500);
   deltas[p] = cur;
 }
 
-// Press-and-hold repeats. The table re-renders on every change, so the pressed button is replaced
-// mid-hold; releasing anywhere on the page stops the repeat.
-let holdTimers = [];
-function stopHolds() { holdTimers.forEach(t => { clearTimeout(t); clearInterval(t); }); holdTimers = []; }
-['pointerup', 'pointercancel', 'blur'].forEach(t => window.addEventListener(t, stopHolds));
+// Press-and-hold repeats, tracked per pointerId so multiple players around the table can adjust life at once.
+// The table re-renders on every change, so the pressed button is replaced mid-hold; releasing anywhere on the page
+// stops that pointer's repeat. Keyboard Enter/Space activates the control once for accessibility.
+const activeHolds = new Map();
+function stopHold(id) {
+  const h = activeHolds.get(id);
+  if (!h) return;
+  h.timers.forEach(t => { clearTimeout(t); clearInterval(t); });
+  h.off();
+  activeHolds.delete(id);
+}
+function stopHolds() { [...activeHolds.keys()].forEach(stopHold); }
+window.addEventListener('blur', stopHolds);
 // A tap counts when the finger lifts, or 80 ms in if it is still down, so a hold starts at once and keeps counting.
 // Moving more than 12 px before that is the start of a swipe, not a tap, and counts nothing.
 function holdRepeat(btn, fn) {
+  btn.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); }
+  });
   btn.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.preventDefault();
-    stopHolds();
-    const x = e.clientX, y = e.clientY, id = e.pointerId;
+    const id = e.pointerId;
+    stopHold(id);
+    const x = e.clientX, y = e.clientY;
     let done = false;
     const fire = () => { if (!done) { done = true; fn(); } };
+    const timers = [];
     // The move is watched on the window: a finger that crosses into the other half, or off the button, still cancels.
-    const off = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', off); };
-    const move = ev => { if (ev.pointerId === id && Math.hypot(ev.clientX - x, ev.clientY - y) > 12) { done = true; stopHolds(); off(); } };
-    const up = ev => { if (ev.pointerId === id) { fire(); off(); } };
+    const off = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
+    };
+    const move = ev => { if (ev.pointerId === id && Math.hypot(ev.clientX - x, ev.clientY - y) > 12) { done = true; stopHold(id); } };
+    const up = ev => { if (ev.pointerId === id) { fire(); stopHold(id); } };
+    const cancel = ev => { if (ev.pointerId === id) { done = true; stopHold(id); } };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', off);
-    holdTimers.push(setTimeout(() => { fire(); holdTimers.push(setTimeout(() => { holdTimers.push(setInterval(fn, 110)); }, 370)); }, 80));
+    window.addEventListener('pointercancel', cancel);
+    timers.push(setTimeout(() => { fire(); timers.push(setTimeout(() => { timers.push(setInterval(fn, 110)); }, 370)); }, 80));
+    activeHolds.set(id, { timers, off });
   });
 }
 
@@ -852,22 +1006,26 @@ function holdRepeat(btn, fn) {
 // a swipe on their panel again leaves it. Over the status card it closes the card instead. It is tracked on the board,
 // which outlives the re-render a counted tap causes mid-gesture. A swipe that began on a button must not also count
 // as that button's tap, so the click that follows it is swallowed.
-// The phone's own gestures start at the screen's edges (the bar from the bottom, back from the sides), so a touch that
-// begins there is never a swipe, and a swipe acts when the finger lifts, not mid-way, so one the system takes over
-// (which cancels the touch) does nothing.
+// The phone's own gestures start at the screen's edges (the bar from the bottom, shade from the top, back from the
+// sides), so a touch that begins there is never a swipe, and a swipe acts when the finger lifts, not mid-way, so one
+// the system takes over (which cancels the touch) does nothing.
 const EDGE = 32, SIDE = 24;
 let swipedAt = 0;
 (() => {
   const board = $('board');
-  let start = null;
+  const touches = new Map();
   board.addEventListener('pointerdown', e => {
+    const g = G();
+    if (!g) return;
     const panel = e.target.closest('.panel');
     const p = panel ? [...board.children].indexOf(panel) : -1;
-    const atEdge = e.clientY > innerHeight - EDGE || e.clientX < SIDE || e.clientX > innerWidth - SIDE;
-    start = p < 0 ? null : { x: e.clientX, y: e.clientY, id: e.pointerId, p, rot: cellOf(G(), p)[1], armed: false, edge: atEdge };
+    if (p < 0) return;
+    const atEdge = e.clientY < EDGE || e.clientY > innerHeight - EDGE || e.clientX < SIDE || e.clientX > innerWidth - SIDE;
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY, p, rot: cellOf(g, p)[1], armed: false, edge: atEdge });
   });
   board.addEventListener('pointermove', e => {
-    if (!start || start.armed || e.pointerId !== start.id) return;
+    const start = touches.get(e.pointerId);
+    if (!start || start.armed) return;
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
     // Any drag, swipe or not, is not a tap: the click that would follow it is swallowed.
     if (Math.hypot(dx, dy) > 12) swipedAt = Date.now();
@@ -875,24 +1033,27 @@ let swipedAt = 0;
     const [along, across] = start.rot % 180 ? [dy, dx] : [dx, dy];
     if (Math.abs(along) < 40 || Math.abs(along) < Math.abs(across) * 1.5) return;
     start.armed = true;
-    stopHolds();
+    stopHold(e.pointerId);
     swipedAt = Date.now();
   });
   window.addEventListener('pointerup', e => {
-    if (!start || e.pointerId !== start.id) return;
-    const { p, armed } = start;
-    start = null;
-    if (!armed) return;
+    const start = touches.get(e.pointerId);
+    if (!start) return;
+    touches.delete(e.pointerId);
+    if (!start.armed) return;
     swipedAt = Date.now();
     const g = G();
-    if (!g || SHEETS.includes(view[p]) || g.players[p].out) return;
-    if (view[p] === 'info') { setView(p, 'face'); renderTable(); return; }
+    const p = start.p;
+    if (!g || SHEETS.includes(view[p])) return;
     if (g.dmgTarget != null) { if (g.dmgTarget === p) { g.dmgTarget = null; commit(); } return; }
+    if (g.players[p].out) return;
+    if (view[p] === 'info') { setView(p, 'face'); renderTable(); return; }
     if (g.n < 2) return;
     g.dmgTarget = p;
     commit();
   });
-  window.addEventListener('pointercancel', () => { start = null; });
+  window.addEventListener('pointercancel', e => { touches.delete(e.pointerId); });
+  window.addEventListener('blur', () => { touches.clear(); });
   board.addEventListener('click', e => { if (Date.now() - swipedAt < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
 })();
 
@@ -907,9 +1068,9 @@ function infoCard(p) {
   card.appendChild(el('h3', null, 'Commander damage'));
   const rows = el('div', 'infoRows');
   fromSeat(g, p).forEach(s => {
-    if (s === p) return;
-    const src = g.players[s];
     const [a, b] = pl.cmd[s];
+    if (s === p && !a && !b) return;
+    const src = g.players[s];
     const row = el('div', 'infoRow' + (a >= 21 || b >= 21 ? ' lethal' : a >= 15 || b >= 15 ? ' warn' : ''));
     const who = el('i', null, g.named[s] ? shortName(src.name)[0].toUpperCase() : String(s + 1));
     who.style.background = tint(src.letters);
@@ -1154,10 +1315,13 @@ function tileValues(p, kind) {
     fromSeat(g, p).forEach(s => {
       const [a, b] = pl.cmd[s];
       if (!a && !b) return;
-      const who = el('i', null, g.named[s] ? shortName(g.players[s].name)[0].toUpperCase() : String(s + 1));
-      who.style.background = tint(g.players[s].letters);
-      const v = el('span', a >= 21 || b >= 21 ? 'v lethal' : a >= 15 || b >= 15 ? 'v warn' : 'v');
-      v.append(who, el('b', 'n', String(a + b)));
+      const src = g.players[s];
+      const split = src.partner || b > 0;
+      const who = el('i', null, g.named[s] ? shortName(src.name)[0].toUpperCase() : String(s + 1));
+      who.style.background = tint(src.letters);
+      const cls = (a >= 21 || b >= 21 ? 'v lethal' : a >= 15 || b >= 15 ? 'v warn' : 'v') + (split ? ' split' : '');
+      const v = el('span', cls);
+      v.append(who, el('b', 'n', split ? `${a}/${b}` : String(a)));
       vals.appendChild(v);
     });
   } else if (kind === 'counters') {
@@ -1246,6 +1410,12 @@ $('radImg').onerror = () => $('radImg').classList.add('hidden');
 $('radInfo').onclick = e => {
   if (e.target.id === 'radClose' || !e.target.closest('.radCard')) $('radInfo').classList.add('hidden');
 };
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('confirm').classList.contains('hidden')) return;
+  if (!$('radInfo').classList.contains('hidden')) $('radInfo').classList.add('hidden');
+  else if (!$('menu').classList.contains('hidden')) $('menu').classList.add('hidden');
+});
 
 // Commander damage: every panel shows the damage its commander(s) dealt to the target player.
 function damageView(p) {
@@ -1331,7 +1501,7 @@ function openFinish() {
   const g = G();
   const left = alive();
   const outs = g.players.filter(pl => pl.out);
-  const lastOut = g.events.filter(e => e.out).pop();
+  const lastOut = g.events.filter(e => e.out && g.players[e.p] && g.players[e.p].out).pop();
   const opts = g.players.map((pl, p) => ({ value: String(p), label: (p === 0 ? 'You · ' : '') + pl.name }));
   if (g.n > 1) opts.push({ value: 'unknown', label: 'Not sure which opponent' });
   seg('winner', opts, left.length === 1 ? String(left[0]) : '');
@@ -1353,7 +1523,7 @@ function openFinish() {
   $('pod').oninput = summarizeDetails;
   summarizeDetails();
   const logs = logsToSheet(g);
-  $('detailsWrap').classList.toggle('hidden', !logs);
+  ['detailsWrap', 'solWrap', 'elimWrap', 'notesWrap'].forEach(id => $(id).classList.toggle('hidden', !logs));
   $('finishNote').textContent = logs ? '' : 'This game won\'t be sent to your sheet (only 4-player games with every commander named).';
   $('saveGame').textContent = logs ? 'Save game' : 'End game';
   msg('finishMsg', '');
@@ -1369,6 +1539,22 @@ $('saveGame').onclick = () => {
   const g = G();
   if (!picked.winner) { msg('finishMsg', 'Pick who won.', true); return; }
   if (logsToSheet(g)) {
+    const turnsRaw = $('turns').value.trim();
+    const turnsNum = Number(turnsRaw);
+    if (turnsRaw !== '' && (!Number.isInteger(turnsNum) || turnsNum < 1)) {
+      msg('finishMsg', 'Turns must be a whole number of at least 1.', true);
+      return;
+    }
+    const elimRaw = $('elim').value.trim();
+    const elimNum = Number(elimRaw);
+    if (elimRaw !== '' && (!Number.isInteger(elimNum) || elimNum < 1 || (turnsRaw !== '' && elimNum > turnsNum))) {
+      msg('finishMsg', '1st elimination must be between 1 and the turn count.', true);
+      return;
+    }
+    if (picked.sol !== '0' && !picked.solWin) {
+      msg('finishMsg', 'Pick whether a turn 1 Sol Ring player won.', true);
+      return;
+    }
     if (!$('pod').value.trim() || !picked.power) {
       $('detailsWrap').open = true;
       msg('finishMsg', 'Fill in the pod and power under Game details.', true);
@@ -1380,14 +1566,16 @@ $('saveGame').onclick = () => {
     const pod = $('pod').value.trim();
     // The next setup offers this game's pod, power and bracket even before the sheet has them; a sync refreshes the lists.
     store.lists.last = { pod, power: picked.power, bracket: picked.bracket };
-    if (!store.lists.pods.includes(pod)) store.lists.pods = store.lists.pods.concat(pod).sort();
+    if (!store.lists.pods.some(p => p.toLowerCase() === pod.toLowerCase())) {
+      store.lists.pods = store.lists.pods.concat(pod).sort();
+    }
     store.queue.push({
       id: g.id,
       setup: { date: $('date').value, pod, power: picked.power, bracket: picked.bracket,
         deck: g.players[0].name, opps: g.players.slice(1).map(pl => pl.name), seat: String(mySeat) },
       colors: g.colors,
       winner: w === 'unknown' ? 'Unknown opponent' : w === '0' ? 'Me' : `Opponent ${w}`,
-      victory: picked.victory, turns: $('turns').value, elim: $('elim').value,
+      victory: picked.victory, turns: turnsRaw, elim: elimRaw,
       sol: picked.sol, solWin: picked.sol !== '0' ? picked.solWin : '',
       notes: $('notes').value.trim(), started: g.started, ended: Date.now(),
       eliminations: g.players.filter(pl => pl.out).map(pl => ({ name: pl.name, turn: pl.out.turn, cause: CAUSE_LABEL[pl.out.cause] })),
@@ -1418,13 +1606,22 @@ document.addEventListener('visibilitychange', () => {
 
 // ---------- start ----------
 
+function validGame(g) {
+  return !!(g && LAYOUTS[g.layout] && Array.isArray(g.players) && g.players.length === g.n &&
+    g.active >= 0 && g.active < g.players.length && g.players.every(pl => pl && Array.isArray(pl.cmd) && pl.counters && pl.mana));
+}
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 applyTheme();
+if (store.game && !validGame(store.game)) {
+  store.game = null;
+  store.undo = [];
+  persist();
+}
 renderHome();
 if (store.game) { show('table'); loadArt(); } else { show('home'); }
-if (store.settings.url && navigator.onLine) {
+if (hasSync() && navigator.onLine) {
   syncQueue();
   if (Date.now() - store.listsAt > 6 * 3600 * 1000) refreshLists().catch(() => {});
 }

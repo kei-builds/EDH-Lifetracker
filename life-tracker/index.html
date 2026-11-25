@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>EDH Life</title>
@@ -21,16 +22,23 @@
   <div class="card" id="syncCard">
     <div id="syncStatus" class="muted"></div>
     <button class="secondary small" id="syncNow">Sync now</button>
+    <div class="queueHelp hidden" id="queueHelp">
+      <button class="secondary small" id="copyQueued" type="button">Copy backup</button>
+      <button class="secondary small danger" id="discardQueued" type="button">Discard failed</button>
+    </div>
   </div>
   <button class="link" id="openSettings">Settings</button>
 </section>
 
 <section id="settings" class="screen page hidden">
   <h2>Settings</h2>
-  <label>Sync URL</label>
-  <input id="setUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
-  <label>Sync key</label>
-  <input id="setKey" autocomplete="off">
+  <label for="setUrl">Sync URL</label>
+  <input id="setUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+  <label for="setKey">Sync key</label>
+  <div class="keyRow">
+    <input id="setKey" type="password" autocomplete="off">
+    <button class="secondary small" id="toggleKey" type="button" aria-label="Show sync key">Show</button>
+  </div>
   <button class="primary" id="saveSettings">Save and test</button>
   <div id="settingsMsg" class="msg"></div>
   <label>Look</label><div class="seg" id="theme"></div>
@@ -50,7 +58,7 @@
   </div>
   <label>Look</label><div class="seg" id="look"></div>
   <div id="podWrap">
-    <label>Pod</label>
+    <label for="setupPod">Pod</label>
     <input id="setupPod" autocomplete="off" placeholder="Who you're playing with">
     <div class="suggest wrap hidden" id="podPick"></div>
   </div>
@@ -99,18 +107,22 @@
   <h2>Game over</h2>
   <label>Who won?</label><div class="seg stack" id="winner"></div>
   <label>How</label><div class="seg" id="victory"></div>
-  <label>Turn 1 Sol Rings</label><div class="seg" id="sol"></div>
-  <div id="solWinWrap" class="hidden"><label>Did a turn 1 Sol Ring player win?</label><div class="seg" id="solWin"></div></div>
-  <div class="row">
-    <div><label>Turns</label><input id="turns" type="number" inputmode="numeric" min="1"></div>
-    <div><label>1st elimination</label><input id="elim" type="number" inputmode="numeric" min="1"></div>
+  <div id="solWrap">
+    <label>Turn 1 Sol Rings</label><div class="seg" id="sol"></div>
+    <div id="solWinWrap" class="hidden"><label>Did a turn 1 Sol Ring player win?</label><div class="seg" id="solWin"></div></div>
   </div>
-  <label>Notes</label><textarea id="notes"></textarea>
+  <div class="row">
+    <div><label for="turns">Turns</label><input id="turns" type="number" inputmode="numeric" min="1"></div>
+    <div id="elimWrap"><label for="elim">1st elimination</label><input id="elim" type="number" inputmode="numeric" min="1"></div>
+  </div>
+  <div id="notesWrap">
+    <label for="notes">Notes</label><textarea id="notes"></textarea>
+  </div>
   <details id="detailsWrap">
     <summary>Game details <span class="muted" id="detailsSummary"></span></summary>
     <div class="row">
-      <div><label>Date</label><input id="date" type="date"></div>
-      <div><label>Pod</label><input id="pod" list="podList" autocomplete="off"></div>
+      <div><label for="date">Date</label><input id="date" type="date"></div>
+      <div><label for="pod">Pod</label><input id="pod" list="podList" autocomplete="off"></div>
     </div>
     <label>Power</label><div class="seg" id="power"></div>
     <label>Bracket</label><div class="seg" id="bracket"></div>
@@ -126,7 +138,7 @@
 <div class="confirm hidden" id="confirm" role="dialog" aria-modal="true" aria-labelledby="confirmText">
   <div class="menu">
     <p id="confirmText"></p>
-    <button id="confirmOk" class="danger">OK</button>
+    <button id="confirmOk">OK</button>
     <button id="confirmCancel">Cancel</button>
   </div>
 </div>
