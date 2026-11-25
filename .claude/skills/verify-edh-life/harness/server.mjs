@@ -16,7 +16,7 @@ export async function serve(root, port = 0) {
     let rel = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     if (rel.endsWith('/')) rel += 'index.html';
     const file = path.resolve(root, '.' + rel);
-    if (!file.startsWith(root)) { res.writeHead(403); res.end(); return; }
+    if (file !== root && !file.startsWith(root + path.sep)) { res.writeHead(403); res.end(); return; }
     try {
       const st = await fs.stat(file);
       if (!st.isFile()) throw new Error('not a file');

@@ -1,6 +1,5 @@
 // The verification session: a fresh Chrome context at phone size, the app served from this checkout, Scryfall stubbed,
 // and an evidence folder that outlives the run. Journeys receive { page, app, evidence, assert } and throw to fail.
-import { chromium } from 'playwright-core';
 import { promises as fs, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
@@ -53,6 +52,7 @@ async function trackBrowser(browser) {
 }
 
 export async function launchBrowser(opts = {}) {
+  const { chromium } = await import('playwright-core');
   const headless = !process.env.EDH_VERIFY_HEADED;
   let last;
   for (const channel of CHROME_CHANNELS) {
@@ -72,8 +72,15 @@ export const ADVENTURE = { faces: ['Kellan, the Fae-Blooded', 'Birthright Boon']
 export const SHEET = { url: 'https://sheet.test/exec', key: 'test-key', decks: ['Poison Pod', 'Goblin Tribal'],
   pair: 'Thrasios, Triton Hero // Tymna the Weaver', commanders: [[ADVENTURE.name, 'WR'], ['Thrasios, Triton Hero // Tymna the Weaver', 'WUBG']] };
 export async function routeSheet(context) {
-  await context.route(`${SHEET.url}**`, route => route.fulfill({ json: route.request().method() === 'POST' ? { ok: true }
-    : { ok: true, decks: SHEET.decks, commanders: SHEET.commanders, pods: [], last: {} } }));
+  await context.route(`${SHEET.url}**`, route => {
+    const req = route.request();
+    let body = null;
+    if (req.method() === 'POST') { try { body = JSON.parse(req.postData() || '{}'); } catch {} }
+    const isLists = req.method() === 'GET' || (body && body.action === 'lists');
+    return route.fulfill({ json: isLists
+      ? { ok: true, decks: SHEET.decks, commanders: SHEET.commanders, pods: [], last: {} }
+      : { ok: true } });
+  });
 }
 const PIXEL_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 export async function routeScryfall(context, mode = process.env.EDH_SCRYFALL || 'stub') {
